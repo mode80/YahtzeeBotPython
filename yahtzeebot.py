@@ -44,7 +44,7 @@ def ev_upperbox_3rolls(box_n:int) -> float:
     ev_upperbox1 = 2.1064814814814823 # 5*1/6 + (5-5/6)*1/6 + ( 5 - 5/6 - (5-5/6)*1/6 )*1/6
     return ev_upperbox1 * box_n
 
-def sim_ev_upperbox_given(n:int, dicevals:list[int],rolls:int=1,trials:int=100000): 
+def sim_ev_upperbox(n:int, dicevals:list[int],rolls:int=1,trials:int=100000): 
     'simulated expected value for an upperbox n with existing dicevals and rolls remaining'
     starting_hits = Counter(dicevals)[n]
     dice_count = 5-starting_hits
@@ -58,7 +58,7 @@ def sim_ev_upperbox_given(n:int, dicevals:list[int],rolls:int=1,trials:int=10000
                     dice_remaining += -1
     return n * (starting_hits + hits/trials)
 
-def ev_upperbox_given(n:int, dicevals:list[int],rolls:int=1): 
+def ev_upperbox(n:int, dicevals:list[int],rolls:int=1): 
     'expected value for an upperbox n with existing dicevals and rolls remaining'
     starting_hits = Counter(dicevals)[n]
     dice_count = 5-starting_hits
@@ -69,7 +69,6 @@ def ev_upperbox_given(n:int, dicevals:list[int],rolls:int=1):
 
 def sim_ev_n_of_a_kind(n:int, target_val:int, dicevals:list[int], trials:int=1000000 ) -> float:
     'simulated expected value for an n-of-a-kind with existing dicevals and 1 roll remaining'
-    # WIP shouldn't it keep rolling low-pips dice even though it's reached the threshold?
     starting_hits = Counter(dicevals)[target_val]
     starting_pips = starting_hits * target_val
     hits_needed = max(0, n - starting_hits)
@@ -100,11 +99,27 @@ def ev_n_of_a_kind(n:int, target_val:int, dicevals:list[int]) -> float:
         ev += p * value_when_acheived * (hit_count>=n)
     return ev 
 
-# def ev_upperbox_x_in_n_rolls(x:int, n:int) -> int:
-#     ev = 0
-#     for hits in range(1,5+1):
-#         ev += odds_of_r_hits_with_n_dice(hits,5) * hits*x
-#     return ev
+def ev_fullhouse(dicevals:list[int]) -> float:
+    'expected value for a full house given existing dicevals and 1 roll remaining'
+    most, second_most, *the_rest = sorted( list( Counter(dicevals).values() ), reverse=True)
+    p=0.0 # p is for probability 
+    if most==5: 
+        p=1 #yahtzees count as a full house 
+    elif most==4: 
+        p=1/6 #best chance at full house is to roll the single oddball die
+    elif most==3:
+       if second_most==2: p = 1 #trips and a pair means we have a full house already 
+       elif second_most==1: p = 1/6 # it's a 1 in 6 chance that rolling one oddball die will match the other 
+    elif most==2:
+        # per Excel table, there are 216 permutations of the last 3 dice, 
+        # and 21 of those will combine with the pair for a full house 
+        p = 21/216
+    elif most==1:
+        # per count_full_houses.py there are 306 ways out of 7776 to roll a full house on the next try
+        p = 306/7776
+    return p * 25
+
+
 
 ''' SCORING FUNCTIONS '''
 

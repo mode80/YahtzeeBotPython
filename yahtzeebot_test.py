@@ -51,14 +51,14 @@ def test_odds_of_x_hits_with_n_dice():
     assert chance_of_exactly_x_hits(1,1) == 1/6
     assert round( chance_of_exactly_x_hits(2,7,12), 5) ==  0.09439
 
-def test_ev_upperbox_given():
-    assert round( sim_ev_upperbox_given(n=1, dicevals=[1,1,1,1,1], rolls=1) ,2) == 5.00 
-    assert round( sim_ev_upperbox_given(n=1, dicevals=[1,1,1,1,1], rolls=2) ,2) == 5.00 
-    assert round( sim_ev_upperbox_given(n=1, dicevals=[1,1,1,1,2], rolls=1) ,2) == round(4 + (1/6) ,2) 
-    assert round( sim_ev_upperbox_given(n=1, dicevals=[1,1,1,2,2], rolls=1) ,2) == round(3 + 2*(1/6) ,2)
-    assert ev_upperbox_given(1,[1,1,1,1,1],2) == 5 
-    assert ev_upperbox_given(1,[1,1,1,1,2],1) == 4 + 1/6 
-    assert round( ev_upperbox_given(1,[1,1,1,2,2],3), 2) ==  round( sim_ev_upperbox_given(1,[1,1,1,2,2],3), 2)
+def test_ev_upperbox():
+    assert round( sim_ev_upperbox(n=1, dicevals=[1,1,1,1,1], rolls=1) ,2) == 5.00 
+    assert round( sim_ev_upperbox(n=1, dicevals=[1,1,1,1,1], rolls=2) ,2) == 5.00 
+    assert round( sim_ev_upperbox(n=1, dicevals=[1,1,1,1,2], rolls=1) ,2) == round(4 + (1/6) ,2) 
+    assert round( sim_ev_upperbox(n=1, dicevals=[1,1,1,2,2], rolls=1) ,2) == round(3 + 2*(1/6) ,2)
+    assert ev_upperbox(1,[1,1,1,1,1],2) == 5 
+    assert ev_upperbox(1,[1,1,1,1,2],1) == 4 + 1/6 
+    assert round( ev_upperbox(1,[1,1,1,2,2],3), 2) ==  round( sim_ev_upperbox(1,[1,1,1,2,2],3), 2)
 
 def test_ev_n_of_a_kind():
     paremslist=[

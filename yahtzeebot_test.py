@@ -28,7 +28,8 @@ def test_score_fullhouse():
     assert score_fullhouse([2,2,3,3,2]) == 25
     assert score_fullhouse([2,2,1,3,3]) == 0 
     assert score_fullhouse([2,3,3,3,3]) == 0 
-    assert score_fullhouse([3,3,3,3,3]) == 0 
+    assert score_fullhouse([1,2,3,4,5]) == 0 
+    assert score_fullhouse([3,3,3,3,3]) == 25 
 
 def test_score_sm_straight():
     assert score_sm_straight([1,3,2,4,6]) == 30
@@ -74,3 +75,16 @@ def test_ev_n_of_a_kind():
             round( sim_ev_n_of_a_kind(*parems)  ,1)==   \
             round( ev_n_of_a_kind(*parems)      ,1)
 
+def test_ev_full_house():
+    paremslist=[
+         ([2,3,3,3,2]),
+         ([4,4,4,4,1]),
+         ([2,2,3,3,6]),
+         ([5,5,5,5,5]),
+         ([1,1,1,4,6]),
+         ([5,2,3,4,1])
+    ]
+    for parems in paremslist:
+        assert                                        \
+            round( sim_ev_fullhouse(parems)  ,1)==   \
+            round( ev_fullhouse(parems)      ,1)

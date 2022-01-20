@@ -99,24 +99,57 @@ def ev_n_of_a_kind(n:int, target_val:int, dicevals:list[int]) -> float:
         ev += p * value_when_acheived * (hit_count>=n)
     return ev 
 
+def sim_ev_fullhouse(dicevals:list[int]) -> float:
+    'simulated expected value for a full house given existing dicevals and 1 roll remaining'
+
+    sortedvals=sorted(dicevals)
+    newvals=[0,0,0,0,0]
+    hits = 0
+    uniques = len(set(dicevals))
+    trials = 1 + 1_000_000 * (uniques-1) # more unique values require more trials
+
+    for t in range(trials): 
+        vals=sortedvals
+        for i in range(len(vals)):
+            should_roll = False
+            if i==0: #first
+                if vals[i] != vals[i+1]: should_roll = True
+            elif i==4: #last
+                if vals[i] != vals[i-1]: should_roll = True
+            else: #middle
+                if vals[i] != vals[i-1] and vals[i]!=vals[i+1]: should_roll = True
+            if should_roll: newvals[i] = randint(1,6)
+            else: newvals[i] = vals[i]
+        if score_fullhouse(newvals) > 0: hits +=1
+
+    return hits/trials * 25
+
+
 def ev_fullhouse(dicevals:list[int]) -> float:
     'expected value for a full house given existing dicevals and 1 roll remaining'
-    most, second_most, *the_rest = sorted( list( Counter(dicevals).values() ), reverse=True)
-    p=0.0 # p is for probability 
-    if most==5: 
-        p=1 #yahtzees count as a full house 
-    elif most==4: 
-        p=1/6 #best chance at full house is to roll the single oddball die
-    elif most==3:
-       if second_most==2: p = 1 #trips and a pair means we have a full house already 
-       elif second_most==1: p = 1/6 # it's a 1 in 6 chance that rolling one oddball die will match the other 
+    counts = sorted( list( Counter(dicevals).values() ), reverse=True)
+    most = counts[0]
+    second_most = counts[1] if len(counts)>1 else 0
+    p = 0.0 # p is for probability 
+    if most==5:             # e.g.[1,1,1,1,1]
+        p=1                 # yahtzees count as a full house 
+    elif most==4:           # e.g.[1,1,1,1,2]
+        p=1/6               # best chance at full house is to roll the single oddball die
+    elif most==3:   
+       if second_most==2:   # e.g.[1,1,1,2,2]
+           p = 1            # trips and a pair means we have a full house already 
+       elif second_most==1: # e.g.[1,1,1,2,3]
+           p = 1/6          # it's a 1 in 6 chance that rolling one oddball die will match the other 
     elif most==2:
-        # per Excel table, there are 216 permutations of the last 3 dice, 
-        # and 21 of those will combine with the pair for a full house 
-        p = 21/216
+        if second_most==2:  # e.g.[1,1,2,2,3]
+            p = 2/6         # there are 2 out of 6 target values for the single oddball die to match the others
+        if second_most==1:  # e.g.[1,1,2,3,4]
+            # per Excel table, there are 216 permutations of the last 3 dice, 
+            # and 21 of those will combine with the pair for a full house 
+            p = 0.09722222222222222 # 21/216
     elif most==1:
-        # per count_full_houses.py there are 306 ways out of 7776 to roll a full house on the next try
-        p = 306/7776
+        # per count_full_houses.py there are 306 ways out of 7776 to roll a full house on one try
+        p = 0.039351851851851858 # 306/7776
     return p * 25
 
 
@@ -164,7 +197,7 @@ def score_lg_straight(dicevals): return (40 if straight_len(dicevals) >= 5 else 
 def score_yahtzee(dicevals): return (50 if score_n_of_a_kind(5,dicevals) > 0 else 0)
 def score_fullhouse(dicevals): 
     counts = sorted(list(Counter(dicevals).values() ))
-    if counts[0]==2 and counts[1]==3: return 25
+    if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
     else: return 0
 
 '''============================================================================================'''

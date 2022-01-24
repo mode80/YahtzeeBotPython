@@ -1,12 +1,8 @@
 from collections import *
 from itertools import permutations
-from json.encoder import INFINITY
 import math
 from random import randint
-from turtle import st
 from math import factorial as fact
-from typing import Tuple, Union
-import itertools
 
 ''' EV FINDER FUNCTIONS '''
 
@@ -197,18 +193,12 @@ def sim_ev_straight(dicevals:list[int],length:int=5):
 def dice_to_roll_for_str8(dicevals:list[int], str8len:int=5) :
     '''returns a tuple containing a string representation of a bitmask for dice positions to roll. 
        e.g. ("010100", 0.1) to roll 2nd and 4th die with 10% probability of a straight'''
-    if str8len==5 :
-        score_straight = score_lg_straight 
-    elif str8len==4: 
-        score_straight = score_sm_straight
-    else: raise Exception()
 
-    newvals = dicevals[:] #cloned with slice operator for speed
+    newvals = list(dicevals)
     i=ii=iii=iv=v=0
     roll_mask_hits= {}
     roll_mask_attempts= {}
     roll_mask_chances= {}
-    #def count_nonzeros(the_list:list[int]): return len(the_list)-Counter(the_list)[0]
     for i in [0,1,2,3,4,5,6]:
         newvals[0]=i if i>0 else dicevals[0]
         if i>0: newvals[0]=i
@@ -221,8 +211,6 @@ def dice_to_roll_for_str8(dicevals:list[int], str8len:int=5) :
                     for v in [0,1,2,3,4,5,6]:
                         newvals[4]=v if v>0 else dicevals[4]
                         indices=[i,ii,iii,iv,v]
-                        # roll_mask=[i!=0,ii!=0,iii!=0,iv!=0,v!=0]
-                        # roll_mask= (v!=0)*2**0 + (iv!=0)*2**1 + (iii!=0)*2**2 + (ii!=0)*2**3 + (i!=0)*2**4
                         roll_mask = \
                             ("1" if i!=0 else "0") + \
                             ("1" if ii!=0 else "0") + \
@@ -249,8 +237,6 @@ def dice_to_roll_for_str8(dicevals:list[int], str8len:int=5) :
 def ev_straight(dicevals:list[int],str8len:int=5):
     '''expected value for a straight of given length using existing dicevals and 1 roll remaining'''
 
-    # find min dice to roll [0,0,1,3,5],
-    # for i, ii, iii, iv, v in itertools.product([1,2,3,4,5,6],[1,2,3,4,5,6],[1,2,3,4,5,6],[1,2,3,4,5,6],[1,2,3,4,5,6]):
     if not (4 <= str8len <=5): raise Exception()
     points = 40 if str8len == 5 else 30 
     die_mask, chance = dice_to_roll_for_str8(dicevals,str8len)
@@ -279,7 +265,7 @@ def score_n_of_a_kind(n,dicevals):
         return 0
 
 def straight_len(dicevals):
-    inarow=1; maxinarow=1; lastval=-INFINITY
+    inarow=1; maxinarow=1; lastval=-999
     sortedvals=sorted(dicevals)
     for x in sortedvals:
         if x==lastval+1: inarow = inarow + 1

@@ -62,13 +62,16 @@ def test_ev_upperbox():
     assert round( ev_upperbox(1,[1,1,1,2,2],3), 1) ==  round( sim_ev_upperbox(1,[1,1,1,2,2],3), 1)
 
 def test_ev_n_of_a_kind():
+    EV1DIEROLL = 3.5 # 1/6 * 1 + 1/6 * 2 + 1/6 * 3 + 1/6 * 4 + 1/6 * 5 + 1/6 * 6
+    assert ev_n_of_a_kind(3, [1,1,1,6,6]) == 36 # AI should try for 6s even though 1s are a sure thing
+    assert ev_n_of_a_kind(4, [1,6,6,6,6]) == 4*6 + EV1DIEROLL # AI should try for higher score with the 1 even though 4 of a kind exists 
     paremslist=[
-        (4,1,[1,1,1,1,4]),
-        (4,1,[1,2,3,4,5]),
-        (3,1,[1,2,3,4,5]),
-        (3,1,[1,1,1,1,1]),
-        (4,1,[1,1,2,3,4]),
-        (4,1,[5,2,3,4,1])
+        (4,[1,1,1,1,4],1),
+        (4,[1,2,3,4,5],1),
+        (3,[1,2,3,4,5],1),
+        (3,[1,1,1,1,1],1),
+        (4,[1,1,2,3,4],1),
+        (4,[5,2,3,4,1],1)
     ]
     for parems in paremslist:
         assert                                          \
@@ -85,9 +88,7 @@ def test_ev_full_house():
          ([5,2,3,4,1])
     ]
     for parems in paremslist:
-        assert                                        \
-            round( sim_ev_fullhouse(parems)  )==   \
-            round( ev_fullhouse(parems)      )
+        assert round( sim_ev_fullhouse(parems)) == round( ev_fullhouse(parems)) 
 
 def test_straight_len():
     assert straight_len([1,2,0,5,3]) == 4

@@ -67,15 +67,23 @@ def ev_upperbox(n:int, dicevals:list[int],rolls:int=1):
         hits += dice_count*( (1/6) * (5/6)**(rolls-roll) )
     return n * (starting_hits + hits)
 
-def sim_ev_n_of_a_kind(n:int, target_val:int, dicevals:list[int], trials:int=1_000_000 ) -> float:
+def sim_ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1, trials:int=1_000_000 ) -> float:
     '''simulated expected value for an n-of-a-kind with existing dicevals and 1 roll remaining'''
-    starting_hits = Counter(dicevals)[target_val]
+
+    # supply smart target_val if not given one 
+    # TODO this isn't always smartest! It's sometime better to shoot for 6s over taking more 1s
+    counts = Counter(dicevals)
+    if target_val == -1: target_val = max(counts, key=counts.get() )
+    if not (1 <= target_val <= 6): raise Exception()
+    starting_hits = counts[target_val]
     starting_pips = starting_hits * target_val
+
     hits_needed = max(0, n - starting_hits)
     to_roll_count = 5-starting_hits
     running_sum=0
     target_acheived=0
     rolled=list(range(to_roll_count)) #prep list of correct size
+
     for trial in range(trials):
         hits=0
         for die_index in range(to_roll_count):
@@ -87,9 +95,16 @@ def sim_ev_n_of_a_kind(n:int, target_val:int, dicevals:list[int], trials:int=1_0
             running_sum += starting_pips + sum(rolled) 
     return running_sum/trials
 
-def ev_n_of_a_kind(n:int, target_val:int, dicevals:list[int]) -> float:
+def ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1 ) -> float:
     '''expected value for an n-of-a-kind with existing dicevals and 1 roll remaining'''
     starting_hits = Counter(dicevals)[target_val]
+     # supply smart target_val if not given one 
+    # TODO this isn't always smartest! It's sometime better to shoot for 6s over taking more 1s
+    counts = Counter(dicevals)
+    if target_val == -1: target_val = max(counts, key=counts.get )
+    if not (1 <= target_val <= 6): raise Exception()
+    starting_hits = counts[target_val]
+
     to_roll_count = 5-starting_hits
     ev =0 
     for i in range(0,to_roll_count+1):
@@ -99,14 +114,14 @@ def ev_n_of_a_kind(n:int, target_val:int, dicevals:list[int]) -> float:
         ev += p * value_when_acheived * (hit_count>=n)
     return ev 
 
-def sim_ev_fullhouse(dicevals:list[int]) -> float:
+def sim_ev_fullhouse(dicevals:list[int],trials:int=-1) -> float:
     '''simulated expected value for a full house given existing dicevals and 1 roll remaining'''
 
     sortedvals=sorted(dicevals)
     newvals=[0,0,0,0,0]
     hits = 0
     uniques = len(set(dicevals))
-    trials = 1 + 1_000_000 * (uniques-1) # more unique values require more trials
+    if trials==-1: trials = 1 + 1_000_000 * (uniques-1) # more unique values require more trials
 
     for t in range(trials): 
         vals=sortedvals
@@ -190,9 +205,9 @@ def sim_ev_straight(dicevals:list[int],length:int=5):
 
     return total/trials 
 
-def dice_to_roll_for_str8(dicevals:list[int], str8len:int=5) :
-    '''returns a tuple containing a string representation of a bitmask for dice positions to roll. 
-       e.g. ("010100", 0.1) to roll 2nd and 4th die with 10% probability of a straight'''
+def dice_to_roll_for_str8(dicevals:list[int], str8len:int=5):
+    '''returns a tuple containing a string representation of dice to roll, and a float of the probability. 
+       e.g. ("010100", 0.1) to roll 2nd and 4th die with 10% chance of a straight'''
 
     newvals = list(dicevals)
     i=ii=iii=iv=v=0

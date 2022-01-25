@@ -22,18 +22,18 @@ def chance_of_exactly_x_hits(x:int, n:int=5, s:int=6)->float:
 def chance_of_at_least_x_hits(x:int, n:int=5, s:int=6)->float:
     '''chance of rolling AT LEAST x target values using n dice with s sides'''
     running_sum = 0
-    for i in range(x,n+1):
+    for i in fullrange(x,n):
         running_sum += chance_of_exactly_x_hits(i,n,s)
     return running_sum
 
 def sim_ev_upperbox1_3rolls(trials:int=100000) -> float:
     '''simulated expected value for an upperbox n with 3 rolls remaining'''
     sum = 0
-    for trial in range(trials):
+    for trial in fullrange(1,trials):
         dice_to_roll_next = 5
-        for roll in range(3):
+        for roll in fullrange(1,3):
             hits_this_roll = 0
-            for die in range(dice_to_roll_next):
+            for die in fullrange(1,dice_to_roll_next):
                 if randint(1,6) == 1: hits_this_roll+=1
             sum += hits_this_roll
             dice_to_roll_next -= hits_this_roll
@@ -49,10 +49,10 @@ def sim_ev_upperbox(n:int, dicevals:list[int],rolls:int=1,trials:int=100000):
     starting_hits = Counter(dicevals)[n]
     dice_count = 5-starting_hits
     hits=0
-    for trial in range(trials):
+    for trial in fullrange(1,trials):
         dice_remaining = dice_count
-        for roll in range(rolls,0,-1):
-            for dienum in range(1,dice_remaining+1):
+        for roll in fullrange(1,rolls):
+            for dienum in fullrange(1,dice_remaining):
                 if randint(1,6)==1:
                     hits +=1
                     dice_remaining += -1
@@ -63,12 +63,24 @@ def ev_upperbox(n:int, dicevals:list[int],rolls:int=1):
     starting_hits = Counter(dicevals)[n]
     dice_count = 5-starting_hits
     hits=0.0
-    for roll in range(rolls,0,-1):
+    for roll in fullrange(1,rolls):
         hits += dice_count*( (1/6) * (5/6)**(rolls-roll) )
     return n * (starting_hits + hits)
 
 def sim_ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1, trials:int=1_000_000 ) -> float:
     '''simulated expected value for an n-of-a-kind with existing dicevals and 1 roll remaining'''
+
+    # to_roll_indices = set()
+    # zero_thru_five = [0,1,2,3,4,5]
+    # for i in zero_thru_five:
+    #     to_roll_indices.add([i])
+    #     for ii in zero_thru_five:
+    #         to_roll_indices.add(tuple(sorted[i,ii]))
+    #         for iii in zero_thru_five:
+    #             to_roll_indices.add(tuple(sorted[i,ii,iii]))
+    #             for iv in zero_thru_five:
+    #                 to_roll_indices.add(tuple(sorted[i,ii,iii,iv]))
+        
 
     # supply smart target_val if not given one 
     # TODO this isn't always smartest! It's sometime better to shoot for 6s over taking more 1s
@@ -82,11 +94,11 @@ def sim_ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1, trials:int=
     to_roll_count = 5-starting_hits
     running_sum=0
     target_acheived=0
-    rolled=list(range(to_roll_count)) #prep list of correct size
+    rolled=list(fullrange(1,to_roll_count)) #prep list of correct size
 
-    for trial in range(trials):
+    for trial in fullrange(1,trials):
         hits=0
-        for die_index in range(to_roll_count):
+        for die_index in fullrange(0,to_roll_count-1):
             rolled_val = randint(1,6)
             rolled[die_index]=rolled_val
             if rolled_val==target_val: hits +=1
@@ -107,7 +119,7 @@ def ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1 ) -> float:
 
     to_roll_count = 5-starting_hits
     ev =0 
-    for i in range(0,to_roll_count+1):
+    for i in fullrange(0,to_roll_count):
         p = chance_of_exactly_x_hits(i, to_roll_count) 
         hit_count = starting_hits+i
         value_when_acheived = hit_count*target_val + (5-hit_count)*EV_FOR_DIE_NOT[target_val]
@@ -123,9 +135,9 @@ def sim_ev_fullhouse(dicevals:list[int],trials:int=-1) -> float:
     uniques = len(set(dicevals))
     if trials==-1: trials = 1 + 1_000_000 * (uniques-1) # more unique values require more trials
 
-    for t in range(trials): 
+    for t in fullrange(1,trials): 
         vals=sortedvals
-        for i in range(len(vals)):
+        for i in fullrange(0,len(vals)-1):
             should_roll = False
             if i==0: #first
                 if vals[i] != vals[i+1]: should_roll = True
@@ -184,7 +196,7 @@ def sim_ev_straight(dicevals:list[int],length:int=5):
     longest_run_idx = 0
     longest_run_len = 0
     in_a_row=1
-    for i in range(1,len(sortedvals)):
+    for i in fullrange(1,len(sortedvals)):
         if sortedvals[i]-1 == sortedvals[i-1]: 
             in_a_row+=1
             if in_a_row > longest_run_len:
@@ -194,8 +206,8 @@ def sim_ev_straight(dicevals:list[int],length:int=5):
             in_a_row=1
     trials = 1 + 1_000_000 * (5-longest_run_len) # too many?
 
-    for t in range(trials): 
-        for i in range(0,len(sortedvals)):
+    for t in fullrange(1,trials): 
+        for i in fullrange(0,len(sortedvals)-1):
             if longest_run_idx <= i <= (longest_run_idx+longest_run_len-1): #keep the values in the longest run 
                 newvals[i] = sortedvals[i]
             else:
@@ -304,6 +316,14 @@ def score_fullhouse(dicevals):
     counts = sorted(list(Counter(dicevals).values() ))
     if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
     else: return 0
+
+' UTILITY FUNCTIONS '
+
+def fullrange(start_inclusive, end_inclusive):
+    '''returns a range INCUSIVE of the given starting value AND ending value''' 
+    # python your default behaviour sucks in this regard 
+    return range(start_inclusive, end_inclusive+1) 
+
 
 '============================================================================================'
 def main():

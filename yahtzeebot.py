@@ -1,9 +1,7 @@
-from collections import *
-from itertools import permutations
+from collections import Counter 
+from itertools import product
 from random import randint
 from math import factorial as fact
-
-from importlib_metadata import itertools
 
 ''' EV FINDER FUNCTIONS '''
 
@@ -55,9 +53,9 @@ def ev_upperbox_3rolls(box_n:int) -> float:
     ev_upperbox1 = 2.1064814814814823 # 5*1/6 + (5-5/6)*1/6 + ( 5 - 5/6 - (5-5/6)*1/6 )*1/6
     return ev_upperbox1 * box_n
 
-def sim_ev_upperbox(n:int, dicevals:list[int],rolls:int=1,trials:int=100000): 
-    '''simulated expected value for an upperbox n with existing dicevals and rolls remaining'''
-    starting_hits = Counter(dicevals)[n]
+def sim_ev_upperbox(n:int, dievals:list[int],rolls:int=1,trials:int=100000): 
+    '''simulated expected value for an upperbox n with existing dievals and rolls remaining'''
+    starting_hits = Counter(dievals)[n]
     dice_count = 5-starting_hits
     hits=0
     for trial in fullrange(1,trials):
@@ -69,9 +67,9 @@ def sim_ev_upperbox(n:int, dicevals:list[int],rolls:int=1,trials:int=100000):
                     dice_remaining += -1
     return n * (starting_hits + hits/trials)
 
-def ev_upperbox(n:int, dicevals:list[int],rolls:int=1): 
-    '''expected value for an upperbox n with existing dicevals and rolls remaining'''
-    starting_hits = Counter(dicevals)[n]
+def ev_upperbox(n:int, dievals:list[int],rolls:int=1): 
+    '''expected value for an upperbox n with existing dievals and rolls remaining'''
+    starting_hits = Counter(dievals)[n]
     dice_count = 5-starting_hits
     hits=0.0
     for roll in fullrange(1,rolls):
@@ -99,18 +97,18 @@ def die_index_combos():
         die_index_combos.them = them #cache this for later
         return them
 
-def sim_ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1, trials:int=1_000_000 ) -> float:
-    '''simulated expected value for an n-of-a-kind with existing dicevals and 1 roll remaining'''
+def sim_ev_n_of_a_kind(n:int, dievals:list[int], target_val:int=-1, trials:int=1_000_000 ) -> float:
+    '''simulated expected value for an n-of-a-kind with existing dievals and 1 roll remaining'''
 
     chances = {}
     combos = die_index_combos() # all unique ways to throw 6 dice, as specified by sets of indexes
     die_sides = [1,2,3,4,5,6]
     for indecis in combos: 
-        roll_outcomes = itertools.product(die_sides,repeat=len(indecis)) # all the possible roll outcomes
+        roll_outcomes = product(die_sides,repeat=len(indecis)) # all the possible roll outcomes
         total=0
         outcome_count = 0
         for outcome in roll_outcomes: # compose and score each roll possibility in turn
-            newvals=list(dicevals)
+            newvals=list(dievals)
             j=0
             for i in indecis: 
                 newvals[i]=outcome[j]
@@ -124,12 +122,12 @@ def sim_ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1, trials:int=
     max_ev = chances[max_combo] 
     return max_ev
 
-# def ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1 ) -> float:
-#     '''expected value for an n-of-a-kind with existing dicevals and 1 roll remaining'''
-#     starting_hits = Counter(dicevals)[target_val]
+# def ev_n_of_a_kind(n:int, dievals:list[int], target_val:int=-1 ) -> float:
+#     '''expected value for an n-of-a-kind with existing dievals and 1 roll remaining'''
+#     starting_hits = Counter(dievals)[target_val]
 #      # supply smart target_val if not given one 
 #     # TODO this isn't always smartest! It's sometime better to shoot for 6s over taking more 1s
-#     counts = Counter(dicevals)
+#     counts = Counter(dievals)
 #     if target_val == -1: target_val = max(counts, key=counts.get )
 #     if not (1 <= target_val <= 6): raise Exception()
 #     starting_hits = counts[target_val]
@@ -143,13 +141,13 @@ def sim_ev_n_of_a_kind(n:int, dicevals:list[int], target_val:int=-1, trials:int=
 #         ev += p * value_when_acheived * (hit_count>=n)
 #     return ev 
 
-def sim_ev_fullhouse(dicevals:list[int],trials:int=-1) -> float:
-    '''simulated expected value for a full house given existing dicevals and 1 roll remaining'''
+def sim_ev_fullhouse(dievals:list[int],trials:int=-1) -> float:
+    '''simulated expected value for a full house given existing dievals and 1 roll remaining'''
 
-    sortedvals=sorted(dicevals)
+    sortedvals=sorted(dievals)
     newvals=[0,0,0,0,0]
     hits = 0
-    uniques = len(set(dicevals))
+    uniques = len(set(dievals))
     if trials==-1: trials = 1 + 1_000_000 * (uniques-1) # more unique values require more trials
 
     for t in fullrange(1,trials): 
@@ -169,9 +167,9 @@ def sim_ev_fullhouse(dicevals:list[int],trials:int=-1) -> float:
     return hits/trials * 25
 
 
-def ev_fullhouse(dicevals:list[int]) -> float:
-    '''expected value for a full house given existing dicevals and 1 roll remaining'''
-    counts = sorted( list( Counter(dicevals).values() ), reverse=True)
+def ev_fullhouse(dievals:list[int]) -> float:
+    '''expected value for a full house given existing dievals and 1 roll remaining'''
+    counts = sorted( list( Counter(dievals).values() ), reverse=True)
     most = counts[0]
     second_most = counts[1] if len(counts)>1 else 0
     p = 0.0 # p is for probability 
@@ -196,17 +194,17 @@ def ev_fullhouse(dicevals:list[int]) -> float:
         p = 0.039351851851851858 # 306/7776
     return p * 25
 
-def sim_ev_straight(dicevals:list[int],length:int=5):
-    '''simulated expected value for a straight of given length using existing dicevals and 1 roll remaining'''
+def sim_ev_straight(dievals:list[int],length:int=5):
+    '''simulated expected value for a straight of given length using existing dievals and 1 roll remaining'''
 
-    sortedvals=sorted(dicevals)
+    sortedvals=sorted(dievals)
     newvals=[0,0,0,0,0]
     total = 0
 
     if length==5 :
-        score_straight = score_lg_straight 
+        score_straight = score_lg_str8 
     elif length==4: 
-        score_straight = score_sm_straight
+        score_straight = score_sm_str8
     else:
         raise Exception("length must be 4 or 5")
 
@@ -234,26 +232,26 @@ def sim_ev_straight(dicevals:list[int],length:int=5):
 
     return total/trials 
 
-def dice_to_roll_for_str8(dicevals:list[int], str8len:int=5):
+def dice_to_roll_for_str8(dievals:list[int], str8len:int=5):
     '''returns a tuple containing a string representation of dice to roll, and a float of the probability. 
        e.g. ("010100", 0.1) to roll 2nd and 4th die with 10% chance of a straight'''
 
-    newvals = list(dicevals)
+    newvals = list(dievals)
     i=ii=iii=iv=v=0
     roll_mask_hits= {}
     roll_mask_attempts= {}
     roll_mask_chances= {}
     for i in [0,1,2,3,4,5,6]:
-        newvals[0]=i if i>0 else dicevals[0]
+        newvals[0]=i if i>0 else dievals[0]
         if i>0: newvals[0]=i
         for ii in [0,1,2,3,4,5,6]:
-            newvals[1]=ii if ii>0 else dicevals[1]
+            newvals[1]=ii if ii>0 else dievals[1]
             for iii in [0,1,2,3,4,5,6]:
-                newvals[2]=iii if iii>0 else dicevals[2]
+                newvals[2]=iii if iii>0 else dievals[2]
                 for iv in [0,1,2,3,4,5,6]:
-                    newvals[3]=iv if iv>0 else dicevals[3]
+                    newvals[3]=iv if iv>0 else dievals[3]
                     for v in [0,1,2,3,4,5,6]:
-                        newvals[4]=v if v>0 else dicevals[4]
+                        newvals[4]=v if v>0 else dievals[4]
                         indices=[i,ii,iii,iv,v]
                         roll_mask = \
                             ("1" if i!=0 else "0") + \
@@ -278,26 +276,28 @@ def dice_to_roll_for_str8(dicevals:list[int], str8len:int=5):
     return best_roll_mask, best_chance
 
  
-def ev_straight(dicevals:list[int],str8len:int=5):
-    '''expected value for a straight of given length using existing dicevals and 1 roll remaining'''
+def ev_straight(dievals:list[int],str8len:int=5):
+    '''expected value for a straight of given length using existing dievals and 1 roll remaining'''
 
     if not (4 <= str8len <=5): raise Exception()
     points = 40 if str8len == 5 else 30 
-    die_mask, chance = dice_to_roll_for_str8(dicevals,str8len)
+    die_mask, chance = dice_to_roll_for_str8(dievals,str8len)
     return chance * points 
+
+
 
 
 ' SCORING FUNCTIONS '
 
-def score_upperbox(boxnum:int, dicevals:list[int])->int:
+def score_upperbox(boxnum:int, dievals:list[int])->int:
     total = 0
-    for x in dicevals:
+    for x in dievals:
         if x==boxnum: total+=x
     return total
 
-def score_n_of_a_kind(n:int,dicevals:list[int])->int:
+def score_n_of_a_kind(n:int,dievals:list[int])->int:
     inarow=1; maxinarow=1; lastval=-1; sum=0; 
-    for x in sorted(dicevals):
+    for x in sorted(dievals):
         if x==lastval: inarow = inarow + 1
         else: inarow=1 
         maxinarow = max(inarow,maxinarow)
@@ -308,9 +308,9 @@ def score_n_of_a_kind(n:int,dicevals:list[int])->int:
     else: 
         return 0
 
-def straight_len(dicevals:list[int])->int:
+def straight_len(dievals:list[int])->int:
     inarow=1; maxinarow=1; lastval=-999
-    sortedvals=sorted(dicevals)
+    sortedvals=sorted(dievals)
     for x in sortedvals:
         if x==lastval+1: inarow = inarow + 1
         else: inarow=1
@@ -318,21 +318,45 @@ def straight_len(dicevals:list[int])->int:
         lastval = x
     return maxinarow 
 
-def score_aces(dicevals:list[int])->int:  return score_upperbox(1,dicevals)
-def score_twos(dicevals:list[int])->int:  return score_upperbox(2,dicevals)
-def score_threes(dicevals:list[int])->int:return score_upperbox(3,dicevals)
-def score_fours(dicevals:list[int])->int: return score_upperbox(4,dicevals)
-def score_fives(dicevals:list[int])->int: return score_upperbox(5,dicevals)
-def score_sixes(dicevals:list[int])->int: return score_upperbox(6,dicevals)
-def score_three_of_a_kind(dicevals:list[int])->int: return score_n_of_a_kind(3,dicevals)
-def score_four_of_a_kind(dicevals:list[int])->int:  return score_n_of_a_kind(4,dicevals)
-def score_sm_straight(dicevals:list[int])->int: return (30 if straight_len(dicevals) >= 4 else 0)
-def score_lg_straight(dicevals:list[int])->int: return (40 if straight_len(dicevals) >= 5 else 0)
-def score_yahtzee(dicevals:list[int])->int: return (50 if score_n_of_a_kind(5,dicevals) > 0 else 0)
-def score_fullhouse(dicevals:list[int])->int: 
-    counts = sorted(list(Counter(dicevals).values() ))
+def score_aces(dievals:list[int])->int:  return score_upperbox(1,dievals)
+def score_twos(dievals:list[int])->int:  return score_upperbox(2,dievals)
+def score_threes(dievals:list[int])->int:return score_upperbox(3,dievals)
+def score_fours(dievals:list[int])->int: return score_upperbox(4,dievals)
+def score_fives(dievals:list[int])->int: return score_upperbox(5,dievals)
+def score_sixes(dievals:list[int])->int: return score_upperbox(6,dievals)
+def score_3ofakind(dievals:list[int])->int: return score_n_of_a_kind(3,dievals)
+def score_4ofakind(dievals:list[int])->int:  return score_n_of_a_kind(4,dievals)
+def score_sm_str8(dievals:list[int])->int: return (30 if straight_len(dievals) >= 4 else 0)
+def score_lg_str8(dievals:list[int])->int: return (40 if straight_len(dievals) >= 5 else 0)
+def score_yahtzee(dievals:list[int])->int: return (50 if score_n_of_a_kind(5,dievals) > 0 else 0)
+def score_bonus(dievals:list[int], available:bool=False)->int: return (100 if available and score_yahtzee(dievals) > 0 else 0)
+def score_fullhouse(dievals:list[int])->int: 
+    counts = sorted(list(Counter(dievals).values() ))
     if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
     else: return 0
+def score_chance(dievals:list[int])->int: return sum(dievals) 
+
+scorecard = {
+    (0, score_chance), 
+    (0, score_aces), 
+    (0, score_twos), 
+    (0, score_threes), 
+    (0, score_fours), 
+    (0, score_fives), 
+    (0, score_sixes), 
+    (0, score_3ofakind), 
+    (0, score_4ofakind), 
+    (0, score_sm_str8), 
+    (0, score_lg_str8), 
+    (0, score_fullhouse), 
+    (0, score_yahtzee),
+    (0, score_bonus), #bonus1
+    (0, score_bonus), #bonus2
+    (0, score_bonus), #bouns3
+}
+
+
+'============================================================================================'
 
 ' UTILITY FUNCTIONS '
 
@@ -341,11 +365,10 @@ def fullrange(start_inclusive, end_inclusive):
     # python your default behaviour sucks in this regard 
     return range(start_inclusive, end_inclusive+1) 
 
-
 '============================================================================================'
 def main():
-    dicevals = [ randint(1,6), randint(1,6), randint(1,6), randint(1,6), randint(1,6) ]
-    print ( dicevals, sim_ev_n_of_a_kind(3,dicevals) )
+    dievals = [ randint(1,6), randint(1,6), randint(1,6), randint(1,6), randint(1,6) ]
+    print ( dievals, sim_ev_n_of_a_kind(3,dievals) )
  
 
 

@@ -1,8 +1,12 @@
 from yahtzeebot import *
+import math
 
-def test_count_of_n_choose_x_combos():
-    parems=(15,6)
-    assert count_of_n_choose_x_combos(*parems) == math.comb(*parems) 
+def test_count_of_n_choose_x_items():
+    assert n_take_r(6,3,ordered=True,with_repetition=True)== 216 
+    assert n_take_r(6,3,ordered=True,with_repetition=False)==120
+    assert n_take_r(6,3,ordered=False,with_repetition=True)==56
+    assert n_take_r(6,3,ordered=False,with_repetition=False)== 20
+    assert n_take_r(15,6) == math.comb(15,6) 
 
 def test_score_aces():  
     assert score_aces([2,1,2,1,5]) == 2
@@ -62,21 +66,22 @@ def test_ev_upperbox():
     assert round( ev_upperbox(1,[1,1,1,2,2],3), 1) ==  round( sim_ev_upperbox(1,[1,1,1,2,2],3), 1)
 
 def test_ev_n_of_a_kind():
-    # EV1DIEROLL = 3.5 # 1/6 * 1 + 1/6 * 2 + 1/6 * 3 + 1/6 * 4 + 1/6 * 5 + 1/6 * 6
+    EV1DIEROLL = 3.5 # 1/6 * 1 + 1/6 * 2 + 1/6 * 3 + 1/6 * 4 + 1/6 * 5 + 1/6 * 6
+    assert round(sim_ev_n_of_a_kind(4, [1,6,6,6,6]) ) == round(4*6 + EV1DIEROLL )# AI should try for higher score with the 1 even though 4 of a kind exists 
+    # assert round(sim_ev_n_of_a_kind(3, [1,1,1,6,6]) ,1) == 6+6+3*EV1DIEROLL # AI should try for 6s even though 1s are a sure thing
     # assert ev_n_of_a_kind(3, [1,1,1,6,6]) == 36 # AI should try for 6s even though 1s are a sure thing
-    # assert ev_n_of_a_kind(4, [1,6,6,6,6]) == 4*6 + EV1DIEROLL # AI should try for higher score with the 1 even though 4 of a kind exists 
-    paremslist=[
-        (4,[1,1,1,1,4],1),
-        (4,[1,2,3,4,5],1),
-        (3,[1,2,3,4,5],1),
-        (3,[1,1,1,1,1],1),
-        (4,[1,1,2,3,4],1),
-        (4,[5,2,3,4,1],1)
-    ]
-    for parems in paremslist:
-        assert                                          \
-            round( sim_ev_n_of_a_kind(*parems)  ,1)==   \
-            round( ev_n_of_a_kind(*parems)      ,1)
+    # paremslist=[
+    #     (4,[1,1,1,1,4],1),
+    #     (4,[1,2,3,4,5],1),
+    #     (3,[1,2,3,4,5],1),
+    #     (3,[1,1,1,1,1],1),
+    #     (4,[1,1,2,3,4],1),
+    #     (4,[5,2,3,4,1],1)
+    # ]
+    # for parems in paremslist:
+    #     assert                                          \
+    #         round( sim_ev_n_of_a_kind(*parems)  ,1)==   \
+    #         round( ev_n_of_a_kind(*parems)      ,1)
 
 def test_ev_full_house():
     paremslist=[

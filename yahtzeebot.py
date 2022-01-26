@@ -2,6 +2,7 @@ from collections import Counter
 from itertools import product
 from random import randint
 from math import factorial as fact
+from typing import *
 
 ''' EV FINDER FUNCTIONS '''
 
@@ -283,6 +284,31 @@ def ev_straight(dievals:list[int],str8len:int=5):
     points = 40 if str8len == 5 else 30 
     die_mask, chance = dice_to_roll_for_str8(dievals,str8len)
     return chance * points 
+
+def sim_ev(dievals:list[int], score_fn:Callable) -> float:
+    '''simulated expected value for the next roll, with a given scoring function, starting with existing dievals'''
+
+    chances = {}
+    combos = die_index_combos() # all unique ways to throw 6 dice, as specified by sets of indexes
+    die_sides = [1,2,3,4,5,6]
+    for indecis in combos: 
+        roll_outcomes = product(die_sides,repeat=len(indecis)) # all the possible roll outcomes
+        total=0
+        outcome_count = 0
+        for outcome in roll_outcomes: # compose and score each roll possibility in turn
+            newvals=list(dievals)
+            j=0
+            for i in indecis: 
+                newvals[i]=outcome[j]
+                j+=1
+            total += score_fn(newvals) 
+            outcome_count += 1
+        assert outcome_count == len(die_sides)**len(indecis)
+        chances[indecis] = total/outcome_count
+
+    max_combo = max(chances, key=chances.get) #TODO this only one of (perhaps) many die combos with this max chances
+    max_ev = chances[max_combo] 
+    return max_ev
 
 
 

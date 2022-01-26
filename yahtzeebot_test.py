@@ -110,11 +110,12 @@ def test_dice_to_roll_for_str8():
     assert dice_to_roll_for_str8([1,2,1,1,6],4)[0]=="11111" # equal odds of rolling "10111".. one of these may be better for other box fallbacks :/
     assert dice_to_roll_for_str8([1,1,3,1,5],4)[0]=="11010"
 
-
 def test_ev_straight():
     assert round(ev_straight([2,3,4,5,5],5) ,1) == round(2/6*40, 1) # outside shot 
     assert round(ev_straight([1,2,2,4,5],5) ,1) == round(1/6*40, 1) # gutshot 
-    # assert round(sim_ev_straight([1,2,0,4,5],5) ,1) == round(1/6*40, 1) # gap1
+    assert round(ev_straight([2,3,4,5,5],5) ,1) == round( sim_ev([2,3,4,5,5], score_lg_str8) ,1)
+    assert round(ev_straight([1,2,2,4,5],5) ,1) == round( sim_ev([1,2,2,4,5], score_lg_str8) ,1)
+     # assert round(sim_ev_straight([1,2,0,4,5],5) ,1) == round(1/6*40, 1) # gap1
     # assert round(sim_ev_straight([1,2,0,0,5],5) ,1) == round(fact(2) * (1/6)**2 * 40, 1) #gap2
     # assert round(sim_ev_straight([1,2,0,5,6],5) ,1) == round(fact(3) * (1/6)**2 * 40, 1) #gap3
     # assert round(sim_ev_straight([1,0,3,0,5],5) ,1) == round(fact(3) * (1/6)**2 * 40, 1) #gap1 2x

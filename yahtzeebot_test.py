@@ -93,7 +93,7 @@ def test_ev_full_house():
          ([5,2,3,4,1])
     ]
     for parems in paremslist:
-        assert round( sim_ev_fullhouse(parems)) == round( ev_fullhouse(parems)) 
+        assert round( sim_ev(parems, score_fullhouse) ) == round( ev_fullhouse(parems) ) 
 
 def test_straight_len():
     assert straight_len([1,2,0,5,3]) == 4
@@ -113,9 +113,7 @@ def test_dice_to_roll_for_str8():
 def test_ev_straight():
     assert round(ev_straight([2,3,4,5,5],5) ,1) == round(2/6*40, 1) # outside shot 
     assert round(ev_straight([1,2,2,4,5],5) ,1) == round(1/6*40, 1) # gutshot 
-    assert round(ev_straight([2,3,4,5,5],5) ,1) == round( sim_ev([2,3,4,5,5], score_lg_str8) ,1)
-    assert round(ev_straight([1,2,2,4,5],5) ,1) == round( sim_ev([1,2,2,4,5], score_lg_str8) ,1)
-     # assert round(sim_ev_straight([1,2,0,4,5],5) ,1) == round(1/6*40, 1) # gap1
+    # assert round(sim_ev_straight([1,2,0,4,5],5) ,1) == round(1/6*40, 1) # gap1
     # assert round(sim_ev_straight([1,2,0,0,5],5) ,1) == round(fact(2) * (1/6)**2 * 40, 1) #gap2
     # assert round(sim_ev_straight([1,2,0,5,6],5) ,1) == round(fact(3) * (1/6)**2 * 40, 1) #gap3
     # assert round(sim_ev_straight([1,0,3,0,5],5) ,1) == round(fact(3) * (1/6)**2 * 40, 1) #gap1 2x
@@ -132,3 +130,7 @@ def test_ev_straight():
     #     assert                                        \
     #         round( ev_straight(parems)      ,1)==   \
     #         round( sim_ev_straight(parems)  ,1)   
+
+def test_sim_ev():
+    assert round(ev_straight([2,3,4,5,5],5) ,1) == round( sim_ev([2,3,4,5,5], score_lg_str8) ,1)
+    assert round(ev_straight([1,2,2,4,5],5) ,1) == round( sim_ev([1,2,2,4,5], score_lg_str8) ,1)

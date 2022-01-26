@@ -79,12 +79,13 @@ def ev_upperbox(n:int, dievals:list[int],rolls:int=1):
 
 def die_index_combos():
     ''' the set of all ways to roll different dice, as represented by a set of indice sets'''
-    ''' {(0), (1), (2), (3), (4), (0,0), (0,1), (0,2), (0,3), (0,4), (1,1), (1,2) ... etc}'''
+    ''' {(), (0), (1), (2), (3), (4), (0,0), (0,1), (0,2), (0,3), (0,4), (1,1), (1,2) ... etc}'''
 
     try: # just return it if we have it cached from last time
         return die_index_combos.them 
     except AttributeError: # this occurs if we haven't generated them yet
         them = set() 
+        them.add(tuple()) # this first one represents rolling no dice -- an empty tuple containing no indices
         for i in fullrange(0,4):
             them.add(tuple(set([i])))
             for ii in fullrange(0,4):

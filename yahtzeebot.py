@@ -71,7 +71,7 @@ def sim_ev_upperbox(n:int, dievals:list[int],rolls:int=1,trials:int=100000):
 def ev_upperbox(n:int, dievals:list[int],rolls:int=1): 
     '''expected value for an upperbox n with existing dievals and rolls remaining'''
     starting_hits = Counter(dievals)[n]
-    dice_count = 5-starting_hits
+    dice_count = 5-starting_hits #TODO this wrongly assumes we can only roll for the most common value 
     hits=0.0
     for roll in fullrange(1,rolls):
         hits += dice_count*( (1/6) * (5/6)**(rolls-roll) )

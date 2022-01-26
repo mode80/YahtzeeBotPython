@@ -93,7 +93,7 @@ def test_ev_full_house():
          ([5,2,3,4,1])
     ]
     for parems in paremslist:
-        assert round( sim_ev(parems, score_fullhouse) ) == round( ev_fullhouse(parems) ) 
+        assert round( sim_ev_fullhouse(parems) ) == round( ev_fullhouse(parems) ) 
 
 def test_straight_len():
     assert straight_len([1,2,0,5,3]) == 4
@@ -132,5 +132,33 @@ def test_ev_straight():
     #         round( sim_ev_straight(parems)  ,1)   
 
 def test_sim_ev():
+    EV1DIEROLL = 3.5 # 1/6 * 1 + 1/6 * 2 + 1/6 * 3 + 1/6 * 4 + 1/6 * 5 + 1/6 * 6
+
+    assert sim_ev([1,1,1,1,1],score_chance) == EV1DIEROLL*5
+
+    assert round(sim_ev([1,6,6,6,6],score_4ofakind) ) == round(4*6 + EV1DIEROLL )# AI should try for higher score with the 1 even though 4 of a kind exists 
+
     assert round(ev_straight([2,3,4,5,5],5) ,1) == round( sim_ev([2,3,4,5,5], score_lg_str8) ,1)
     assert round(ev_straight([1,2,2,4,5],5) ,1) == round( sim_ev([1,2,2,4,5], score_lg_str8) ,1)
+
+    assert sim_ev([2,2,2,2,2],score_yahtzee) == 50 
+    assert sim_ev([2,2,6,2,2],score_yahtzee) == 50 * 1/6 
+
+    assert round( sim_ev([1,1,1,1,1], score_aces) ,1) == 5.0 
+    assert round( sim_ev([1,1,1,1,1], score_aces) ,1) == 5.0 
+    assert round( sim_ev([1,1,1,1,2], score_aces) ,1) == round(4 + (1/6) ,1) 
+    assert round( sim_ev([1,1,1,2,2], score_aces) ,1) == round(3 + 2*(1/6) ,1)
+    assert sim_ev([1,1,1,1,1], score_aces) == 5 
+    assert sim_ev([1,1,1,1,2], score_aces) == 4 + 1/6 
+
+    paremslist=[
+         ([2,3,3,3,2]),
+         ([4,4,4,4,1]),
+         ([2,2,3,3,6]),
+         ([5,5,5,5,5]),
+         ([1,1,1,4,6]),
+         ([5,2,3,4,1])
+    ]
+    for parems in paremslist:
+        assert round( sim_ev(parems, score_fullhouse) ) == round( ev_fullhouse(parems) ) 
+

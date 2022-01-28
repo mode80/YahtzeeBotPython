@@ -62,17 +62,17 @@ def test_straight_len():
 def test_sim_ev():
     EV1DIEROLL = 3.5 # 1/6 * 1 + 1/6 * 2 + 1/6 * 3 + 1/6 * 4 + 1/6 * 5 + 1/6 * 6
 
-    assert sim_ev([1,1,1,1,1],score_chance) == EV1DIEROLL*5
+    assert ev([1,1,1,1,1],score_chance) == EV1DIEROLL*5
 
-    assert round(sim_ev([1,6,6,6,6],score_4ofakind) ) == round(4*6 + EV1DIEROLL )# AI should try for higher score with the 1 even though 4 of a kind exists 
+    assert round(ev([1,6,6,6,6],score_4ofakind) ) == round(4*6 + EV1DIEROLL )# AI should try for higher score with the 1 even though 4 of a kind exists 
 
-    assert sim_ev([2,2,2,2,2],score_yahtzee) == 50 
-    assert sim_ev([2,2,6,2,2],score_yahtzee) == 50 * 1/6 
+    assert ev([2,2,2,2,2],score_yahtzee) == 50 
+    assert ev([2,2,6,2,2],score_yahtzee) == 50 * 1/6 
 
-    assert round( sim_ev([1,1,1,1,1], score_aces) ,1) == 5.0 
-    assert round( sim_ev([1,1,1,1,1], score_aces) ,1) == 5.0 
-    assert round( sim_ev([1,1,1,1,2], score_aces) ,1) == round(4 + (1/6) ,1) 
-    assert round( sim_ev([1,1,1,2,2], score_aces) ,1) == round(3 + 2*(1/6) ,1)
-    assert sim_ev([1,1,1,1,1], score_aces) == 5 
-    assert sim_ev([1,1,1,1,2], score_aces) == 4 + 1/6 
+    assert round( ev([1,1,1,1,1], score_aces) ,1) == 5.0 
+    assert round( ev([1,1,1,1,1], score_aces) ,1) == 5.0 
+    assert round( ev([1,1,1,1,2], score_aces) ,1) == round(4 + (1/6) ,1) 
+    assert round( ev([1,1,1,2,2], score_aces) ,1) == round(3 + 2*(1/6) ,1)
+    assert ev([1,1,1,1,1], score_aces) == 5 
+    assert ev([1,1,1,1,2], score_aces) == 4 + 1/6 
 

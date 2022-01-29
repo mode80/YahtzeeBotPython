@@ -5,8 +5,6 @@ from random import randint
 from math import factorial as fact
 from typing import * 
 
-from importlib_metadata import itertools
-
 '============================================================================================'
 ' UTILITY FUNCTIONS '
 
@@ -165,7 +163,7 @@ def main():
         slot[0], _ = ev(dice,slot[1])
 
     print(dice)
-    print([slot[0] for slot in scorecard])
+    for slot in scorecard: print(slot[1].__name__ + "\t" + str(round(slot[0],1)) ) 
 
 
 #########################################################

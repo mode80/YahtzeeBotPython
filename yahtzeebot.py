@@ -15,7 +15,7 @@ def fullrange(start_inclusive, end_inclusive):
 
 def n_take_r(n:int, r:int,ordered:bool=False,with_repetition:bool=False)->int:
     '''count of arrangements that can be formed from r selections, chosen from n items, 
-      where order does or doesnt matter, and with or without repetition, as specified'''
+      -- where order does or doesnt matter, and with or without repetition, as specified'''
     if (not ordered): # we're counting "combinations" where order doesn't matter, so there are less of these 
         if with_repetition:
             return fact(n+r-1) // ( fact(r)*fact(n-1) )
@@ -63,16 +63,16 @@ def die_index_combos()->set[tuple[int,...]]:
 die_sides = [1,2,3,4,5,6] # values for all sides of a standard die
 side_count = len(die_sides) 
 index_combos: set[tuple[int,...]] = die_index_combos() # all options for which of 5 dice to roll
-roll_outcomes_for_die_set_of_size = [list(product(die_sides,repeat=i)) for i in fullrange(0,5)] # all possible roll outcomes for different size die sets 
+roll_outcomes_for_set_of_size = [list(product(die_sides,repeat=i)) for i in fullrange(0,5)] # all possible roll outcomes for different size die sets 
 
-def ev(dievals: tuple[int,int,int,int,int], score_fn: Callable[[list[int]],float] ) -> tuple[float,list[tuple[int,...]]]:
+def ev(dievals: list[int], score_fn: Callable[[list[int]],float] ) -> tuple[float,list[tuple[int,...]]]:
     '''highest expected value for the next roll, with a given scoring function, starting with existing dievals'''
     '''also returns a list of of die indice tuples that can be rolled to acheive this expected value'''
 
     chances = {}
     for indecis in index_combos: 
         die_count = len(indecis)
-        outcomes = roll_outcomes_for_die_set_of_size[die_count]
+        outcomes = roll_outcomes_for_set_of_size[die_count]
         total=0.0
         for outcome in outcomes: # compose and score each roll possibility in turn
             newvals=list(dievals)
@@ -134,36 +134,65 @@ def score_fullhouse(dievals:list[int])->int:
 def score_chance(dievals:list[int])->int: return sum(dievals) 
 
 
+# def choose_dice(slots:set[Callable[[list[int]],int]], dievals, rolls_remaining=1)-> tuple[int,...]:
+#     ''' returns indices of which dice to roll given scoring functions of available slots, current dievals, and rolls remaining '''
+
+#     if len(slots) == 1:
+#         if rolls_remaining == 1:
+#             return ev(dievals,slots[0][1]
+
+#     pass
+
+# named indexes for the different slot types
+CHANCE=0
+ACES=1
+TWOS=2
+THREES=3
+FOURS=4
+FIVES=5
+SIXES=6
+THREE_OF_A_KIND=7
+FOUR_OF_A_KIND=8
+SMALL_STRAIGHT=9
+LARGE_STRAIGHT=10
+FULL_HOUSE=11
+YAHTZEE=12
+# BONUS1=13
+# BONUS2=14
+# BONUS3=15
+SLOT_COUNT=13
+
+slot_points = [None]*SLOT_COUNT
+slot_score_fns = [
+    score_chance, 
+    score_aces, 
+    score_twos, 
+    score_threes, 
+    score_fours, 
+    score_fives, 
+    score_sixes, 
+    score_3ofakind, 
+    score_4ofakind, 
+    score_sm_str8, 
+    score_lg_str8, 
+    score_fullhouse, 
+    score_yahtzee,
+    #[0, score_bonus], #bonus1
+    #[0, score_bonus], #bonus2
+    #[0, score_bonus], #bonus3
+]
+
+
 '============================================================================================'
 def main(): 
     #ad hoc testing code here for now
 
-    scorecard = [
-       [0, score_chance], 
-       [0, score_aces], 
-       [0, score_twos], 
-       [0, score_threes], 
-       [0, score_fours], 
-       [0, score_fives], 
-       [0, score_sixes], 
-       [0, score_3ofakind], 
-       [0, score_4ofakind], 
-       [0, score_sm_str8], 
-       [0, score_lg_str8], 
-       [0, score_fullhouse], 
-       [0, score_yahtzee],
-    #    [0, score_bonus], #bonus1
-    #    [0, score_bonus], #bonus2
-    #    [0, score_bonus], #bonus3
-    ]
-
     dice = [randint(1,6) for _ in range(5)]
-
-    for slot in scorecard:
-        slot[0], _ = ev(dice,slot[1])
-
     print(dice)
-    for slot in scorecard: print(slot[1].__name__ + "\t" + str(round(slot[0],1)) ) 
+
+    for i in range(0,SLOT_COUNT):
+        slot_points[i], _ = ev(dice,slot_score_fns[i])
+        print( slot_score_fns[i].__name__ + "\t" + str(round(slot_points[i],2)) )
 
 
 #########################################################

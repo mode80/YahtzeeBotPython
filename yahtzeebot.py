@@ -76,10 +76,8 @@ def ev(dievals: list[int], score_fn: Callable[[list[int]],float] ) -> tuple[floa
         total=0.0
         for outcome in outcomes: # compose and score each roll possibility in turn
             newvals=list(dievals)
-            j=0
-            for i in indecis: 
-                newvals[i]=outcome[j]
-                j+=1
+            for outcome_index, die_index in enumerate(indecis): 
+                newvals[die_index]=outcome[outcome_index]
             total += score_fn(newvals) 
         outcome_count = side_count**die_count
         chances[indecis] = total/outcome_count
@@ -181,10 +179,19 @@ class StateEV:
     avail_slot_indices:list[int] # 32768 possibilities per sum( [n_take_r(15,r,False,False) for r in fullrange(0,15)])
     rolls_remaining:int # 3 possibilities per len([0,1,2])
     dievals:list[int] # 362 possibilities per sum(n_take_r(6,r,False,True) for r in fullrange(0,5)]) 
-    indices_to_roll:tuple[int] # 32 possibilites per sum(n_take_r(5,r,False,False) for r in fullrange(0,5)] 
+    indices_to_roll:tuple[int] # 32 possibilities per sum(n_take_r(5,r,False,False) for r in fullrange(0,5)] 
     upper_bonus_deficit: int #<= 63 possibilities 
     ev:float # 71_741_472_768 possibilities per 32768*3*362*32*63 and 2_241_921_024 worth saving per 32768*3*362*63 
 
+def generate_odds():
+
+    # start with all completed scorecard states with 0 rolls left
+    # work backwards to all the 1 slot 1 roll remaining states
+    # then 1 slot 2 roll remaining states
+    # then 2 slot 1 roll
+    # 2slot 2 roll
+    # etc
+    pass
 
 # def choose_dice(slot_options:list[Slot], dievals, rolls_remaining=1) -> tuple(float,tuple[int,...]): 
 #     ''' returns indices of which dice to roll given scoring functions of available slots, current dievals, and rolls remaining '''

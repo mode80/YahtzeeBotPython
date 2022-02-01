@@ -2,10 +2,10 @@ from yahtzeebot import *
 import math
 
 def test_count_of_n_choose_x_items():
-    assert n_take_r(6,3,ordered=True,with_repetition=True)== 216 
-    assert n_take_r(6,3,ordered=True,with_repetition=False)==120
-    assert n_take_r(6,3,ordered=False,with_repetition=True)==56
-    assert n_take_r(6,3,ordered=False,with_repetition=False)== 20
+    assert n_take_r(6,3,ordered=True,with_replacement=True)== 216 
+    assert n_take_r(6,3,ordered=True,with_replacement=False)==120
+    assert n_take_r(6,3,ordered=False,with_replacement=True)==56
+    assert n_take_r(6,3,ordered=False,with_replacement=False)== 20
     assert n_take_r(15,6) == math.comb(15,6) 
 
 def test_score_aces():  

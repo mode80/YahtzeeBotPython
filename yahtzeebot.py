@@ -3,7 +3,7 @@ from itertools import product
 from multiprocessing import Value
 from random import randint
 from math import factorial as fact
-from typing import * 
+from typing import *
 
 '============================================================================================'
 ' UTILITY FUNCTIONS '
@@ -13,16 +13,16 @@ def fullrange(start_inclusive, end_inclusive):
     # python your default behaviour sucks in this regard 
     return range(start_inclusive, end_inclusive+1) 
 
-def n_take_r(n:int, r:int,ordered:bool=False,with_repetition:bool=False)->int:
+def n_take_r(n:int, r:int,ordered:bool=False,with_replacement:bool=False)->int:
     '''count of arrangements that can be formed from r selections, chosen from n items, 
-      -- where order does or doesnt matter, and with or without repetition, as specified'''
+       where order DOES or DOESNT matter, and WITH or WITHOUT replacement, as specified'''
     if (not ordered): # we're counting "combinations" where order doesn't matter, so there are less of these 
-        if with_repetition:
+        if with_replacement:
             return fact(n+r-1) // ( fact(r)*fact(n-1) )
         else:
             return fact(n) // ( fact(r)*fact(n-r) ) # this matches math.comb()
     else: 
-        if with_repetition:
+        if with_replacement:
             return n**r 
         else:
             return fact(n)//fact(n-r)
@@ -66,8 +66,8 @@ index_combos: set[tuple[int,...]] = die_index_combos() # all options for which o
 roll_outcomes_for_set_of_size = [list(product(die_sides,repeat=i)) for i in fullrange(0,5)] # all possible roll outcomes for different size die sets 
 
 def ev(dievals: list[int], score_fn: Callable[[list[int]],float] ) -> tuple[float,list[tuple[int,...]]]:
-    '''highest expected value for the next roll, with a given scoring function, starting with existing dievals'''
-    '''also returns a list of of die indice tuples that can be rolled to acheive this expected value'''
+    '''highest expected value for the next roll, with a given scoring function, starting with existing dievals.
+       also returns a list of of die indice tuples that can be rolled to acheive this expected value'''
 
     chances = {}
     for indecis in index_combos: 
@@ -115,6 +115,7 @@ def straight_len(dievals:list[int])->int:
         lastval = x
     return maxinarow 
 
+def score_chance(dievals:list[int])->int: return sum(dievals) 
 def score_aces(dievals:list[int])->int:  return score_upperbox(1,dievals)
 def score_twos(dievals:list[int])->int:  return score_upperbox(2,dievals)
 def score_threes(dievals:list[int])->int:return score_upperbox(3,dievals)
@@ -125,23 +126,13 @@ def score_3ofakind(dievals:list[int])->int: return score_n_of_a_kind(3,dievals)
 def score_4ofakind(dievals:list[int])->int:  return score_n_of_a_kind(4,dievals)
 def score_sm_str8(dievals:list[int])->int: return (30 if straight_len(dievals) >= 4 else 0)
 def score_lg_str8(dievals:list[int])->int: return (40 if straight_len(dievals) >= 5 else 0)
-def score_yahtzee(dievals:list[int])->int: return (50 if score_n_of_a_kind(5,dievals) > 0 else 0)
-def score_bonus(dievals:list[int], available:bool=False)->int: return (100 if available and score_yahtzee(dievals) > 0 else 0)
 def score_fullhouse(dievals:list[int])->int: 
     counts = sorted(list(Counter(dievals).values() ))
     if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
     else: return 0
-def score_chance(dievals:list[int])->int: return sum(dievals) 
+def score_yahtzee(dievals:list[int])->int: return (50 if score_n_of_a_kind(5,dievals) > 0 else 0)
+def score_bonus(dievals:list[int] )->int: return (100 if score_yahtzee(dievals) > 0 else 0)
 
-
-# def choose_dice(slots:set[Callable[[list[int]],int]], dievals, rolls_remaining=1)-> tuple[int,...]:
-#     ''' returns indices of which dice to roll given scoring functions of available slots, current dievals, and rolls remaining '''
-
-#     if len(slots) == 1:
-#         if rolls_remaining == 1:
-#             return ev(dievals,slots[0][1]
-
-#     pass
 
 # named indexes for the different slot types
 CHANCE=0
@@ -157,12 +148,12 @@ SMALL_STRAIGHT=9
 LARGE_STRAIGHT=10
 FULL_HOUSE=11
 YAHTZEE=12
-# BONUS1=13
-# BONUS2=14
-# BONUS3=15
-SLOT_COUNT=13
+BONUS1=13
+BONUS2=14
+BONUS3=15
+SLOT_COUNT=16
 
-slot_points = [None]*SLOT_COUNT
+slot_points = [None]*16
 slot_score_fns = [
     score_chance, 
     score_aces, 
@@ -177,10 +168,35 @@ slot_score_fns = [
     score_lg_str8, 
     score_fullhouse, 
     score_yahtzee,
-    #[0, score_bonus], #bonus1
-    #[0, score_bonus], #bonus2
-    #[0, score_bonus], #bonus3
+    score_bonus,
+    score_bonus,
+    score_bonus,
 ]
+
+class Slot:
+    points:int 
+    score_fn:Callable[[list[int]],int] 
+
+class StateEV:
+    avail_slot_indices:list[int] # 32768 possibilities per sum( [n_take_r(15,r,False,False) for r in fullrange(0,15)])
+    rolls_remaining:int # 3 possibilities per len([0,1,2])
+    dievals:list[int] # 362 possibilities per sum(n_take_r(6,r,False,True) for r in fullrange(0,5)]) 
+    indices_to_roll:tuple[int] # 32 possibilites per sum(n_take_r(5,r,False,False) for r in fullrange(0,5)] 
+    upper_bonus_deficit: int #<= 63 possibilities 
+    ev:float # 71_741_472_768 possibilities per 32768*3*362*32*63 and 2_241_921_024 worth saving per 32768*3*362*63 
+
+
+# def choose_dice(slot_options:list[Slot], dievals, rolls_remaining=1) -> tuple(float,tuple[int,...]): 
+#     ''' returns indices of which dice to roll given scoring functions of available slots, current dievals, and rolls remaining '''
+
+    # if len(slot_options) == 1:
+    #     odds, best_choices= ev(dievals, slot_options[0])
+    #     if rolls_remaining == 1:
+    #         return best_choices[0] # as there is no more branching, just return the first one 
+    #     else 
+    #         for choice in best_choices 
+    #         odds, die_sets = ev(dievals, slot_options[0])
+
 
 
 '============================================================================================'
@@ -191,7 +207,9 @@ def main():
     print(dice)
 
     for i in range(0,SLOT_COUNT):
-        slot_points[i], _ = ev(dice,slot_score_fns[i])
+        available = True
+        if i > YAHTZEE and slot_points[i-1]==None: available = False #bonus slots not always available
+        slot_points[i], _ = ev(dice,slot_score_fns[i]) if available else None
         print( slot_score_fns[i].__name__ + "\t" + str(round(slot_points[i],2)) )
 
 

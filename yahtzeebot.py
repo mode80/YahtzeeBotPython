@@ -115,8 +115,8 @@ YAHTZEE_BONUS3=16
 
 SLOT_COUNT=17
 all_slot_indecis = range(SLOT_COUNT) 
-independent_slot_indecis = fullrange(ACES,CHANCE) 
-IndependentSlotIndex = Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]    
+independent_slot_indecis = fullrange(ACES,CHANCE) # independent slots don't depend on other slots for their value
+IndependentSlotIndex = Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]    
 
 def score_aces(sorted_dievals:tuple[int,...])->int:  return score_upperbox(1,sorted_dievals)
 def score_twos(sorted_dievals:tuple[int,...])->int:  return score_upperbox(2,sorted_dievals)
@@ -193,10 +193,6 @@ def ev_for_slot(slot_index:IndependentSlotIndex, sorted_dievals: tuple[int,...] 
     max_combos = [key for (key,value) in chances.items() if value == max_ev]
     return max_ev, max_combos
 
-def ev_for_card(sorted_dievals: tuple[int,...])->float:
-    '''returns the expected value for the final score of a scorecard, given its current state and a set of dice with one roll remaining'''
-    pass
-
 '============================================================================================'
     
 SIDES = 6
@@ -262,7 +258,7 @@ def main():
     # for i in fullrange(YAHTZEE_BONUS1,YAHTZEE_BONUS3):
     #     slot_points[i], _ = ev_for_slot(i, dice) if slot_points[i-1]!=None else 0 
  
-    for i in all_slot_indecis:
+    for i in independent_slot_indecis:
         print( score_fns[i].__name__ + "\t" + str(round(slot_points[i],2)) )
 
 

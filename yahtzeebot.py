@@ -1,9 +1,9 @@
 from collections import Counter 
 from itertools import product
-from multiprocessing import Value
 from random import randint
 from math import factorial as fact
 from typing import *
+from functools import * 
 
 '============================================================================================'
 ' UTILITY FUNCTIONS '
@@ -41,7 +41,7 @@ def chance_of_at_least_x_hits(x:int, n:int=5, s:int=6)->float:
     return running_sum
 
 
-
+@cache
 def die_index_combos()->set[tuple[int,...]]:
     ''' the set of all ways to roll different dice, as represented by a set of indice sets'''
     ''' {(), (0), (1), (2), (3), (4), (0,0), (0,1), (0,2), (0,3), (0,4), (1,1), (1,2) ... etc}'''
@@ -60,26 +60,28 @@ def die_index_combos()->set[tuple[int,...]]:
     return them
 
 
-die_sides = [1,2,3,4,5,6] # values for all sides of a standard die
-side_count = len(die_sides) 
-index_combos: set[tuple[int,...]] = die_index_combos() # all options for which of 5 dice to roll
-roll_outcomes_for_set_of_size = [list(product(die_sides,repeat=i)) for i in fullrange(0,5)] # all possible roll outcomes for different size die sets 
+@cache
+def roll_outcomes_for_set_of_size(): 
+    die_sides = [1,2,3,4,5,6] # values for all sides of a standard die
+    return [list(product(die_sides,repeat=i)) for i in fullrange(0,5)] # all possible roll outcomes for different size die sets 
 
+@cache
 def ev(dievals: list[int], score_fn: Callable[[list[int]],float] ) -> tuple[float,list[tuple[int,...]]]:
     '''highest expected value for the next roll, with a given scoring function, starting with existing dievals.
        also returns a list of of die indice tuples that can be rolled to acheive this expected value'''
 
+    SIDES = 6
     chances = {}
-    for indecis in index_combos: 
+    for indecis in die_index_combos(): 
         die_count = len(indecis)
-        outcomes = roll_outcomes_for_set_of_size[die_count]
+        outcomes = roll_outcomes_for_set_of_size()[die_count]
         total=0.0
         for outcome in outcomes: # compose and score each roll possibility in turn
             newvals=list(dievals)
             for outcome_index, die_index in enumerate(indecis): 
                 newvals[die_index]=outcome[outcome_index]
             total += score_fn(newvals) 
-        outcome_count = side_count**die_count
+        outcome_count = SIDES**die_count
         chances[indecis] = total/outcome_count
 
     max_ev = float(max(chances.values()))
@@ -113,85 +115,95 @@ def straight_len(dievals:list[int])->int:
         lastval = x
     return maxinarow 
 
-def score_chance(dievals:list[int])->int: return sum(dievals) 
-def score_aces(dievals:list[int])->int:  return score_upperbox(1,dievals)
-def score_twos(dievals:list[int])->int:  return score_upperbox(2,dievals)
-def score_threes(dievals:list[int])->int:return score_upperbox(3,dievals)
-def score_fours(dievals:list[int])->int: return score_upperbox(4,dievals)
-def score_fives(dievals:list[int])->int: return score_upperbox(5,dievals)
-def score_sixes(dievals:list[int])->int: return score_upperbox(6,dievals)
-def score_3ofakind(dievals:list[int])->int: return score_n_of_a_kind(3,dievals)
-def score_4ofakind(dievals:list[int])->int:  return score_n_of_a_kind(4,dievals)
-def score_sm_str8(dievals:list[int])->int: return (30 if straight_len(dievals) >= 4 else 0)
-def score_lg_str8(dievals:list[int])->int: return (40 if straight_len(dievals) >= 5 else 0)
-def score_fullhouse(dievals:list[int])->int: 
-    counts = sorted(list(Counter(dievals).values() ))
-    if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
-    else: return 0
-def score_yahtzee(dievals:list[int])->int: return (50 if score_n_of_a_kind(5,dievals) > 0 else 0)
-def score_bonus(dievals:list[int] )->int: return (100 if score_yahtzee(dievals) > 0 else 0)
+
+class ScoreCard:
+    # named indexes for the different slot types
+
+    UPPER_BONUS=0
+    ACES=1
+    TWOS=2
+    THREES=3
+    FOURS=4
+    FIVES=5
+    SIXES=6
+    THREE_OF_A_KIND=7
+    FOUR_OF_A_KIND=8
+    SMALL_STRAIGHT=9
+    LARGE_STRAIGHT=10
+    FULL_HOUSE=11
+    YAHTZEE=12
+    CHANCE=13
+    YAHTZEE_BONUS1=14
+    YAHTZEE_BONUS2=15
+    YAHTZEE_BONUS3=16
+
+    SLOT_COUNT=17
+    SlotIndex = Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]    
+
+    def score_upper_bonus(my, dievals:list[int])->int: return 35 if my.calc_upper_points() >= 63 else 0 
+    def score_aces(my, dievals:list[int])->int:  return score_upperbox(1,dievals)
+    def score_twos(my, dievals:list[int])->int:  return score_upperbox(2,dievals)
+    def score_threes(my, dievals:list[int])->int:return score_upperbox(3,dievals)
+    def score_fours(my, dievals:list[int])->int: return score_upperbox(4,dievals)
+    def score_fives(my, dievals:list[int])->int: return score_upperbox(5,dievals)
+    def score_sixes(my, dievals:list[int])->int: return score_upperbox(6,dievals)
+    def score_3ofakind(my, dievals:list[int])->int: return score_n_of_a_kind(3,dievals)
+    def score_4ofakind(my, dievals:list[int])->int:  return score_n_of_a_kind(4,dievals)
+    def score_sm_str8(my, dievals:list[int])->int: return (30 if straight_len(dievals) >= 4 else 0)
+    def score_lg_str8(my, dievals:list[int])->int: return (40 if straight_len(dievals) >= 5 else 0)
+    def score_fullhouse(my, dievals:list[int])->int: 
+        counts = sorted(list(Counter(dievals).values() ))
+        if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
+        else: return 0
+    def score_chance(my, dievals:list[int])->int: return sum(dievals) 
+    def score_yahtzee(my, dievals:list[int])->int: return (50 if score_n_of_a_kind(5,dievals) > 0 else 0)
+    def score_yahtzee_bonus(my, dievals:list[int] )->int: return (100 if my.score_yahtzee(dievals) > 0 else 0)
+
+    slot_points:list[Optional[int]] = [None]*16
+
+    score_fns = [
+        score_upper_bonus,
+        score_aces, score_twos, score_threes, score_fours, score_fives, score_sixes, 
+        score_3ofakind, score_4ofakind, score_sm_str8, score_lg_str8, score_fullhouse, score_yahtzee, score_chance, 
+        score_yahtzee_bonus, score_yahtzee_bonus, score_yahtzee_bonus,
+    ]
+
+    def score_slot(my, dievals:list[int], slot_index:SlotIndex)->int:
+        return my.score_fns[slot_index](my,dievals)
+
+    def non_empty_slot_points(my)->list[int]:
+        return filter(bool,my.slot_points) #type:ignore 
+
+    def calc_total_points(my)->int:
+        return sum(filter(bool,my.non_empty_slot_points() )) 
+
+    def calc_lower_points(my)->int:
+        return sum(filter(bool, [y for x,y in enumerate(my.non_empty_slot_points()) if my.ACES <= y <= my.SIXES] ))
+
+    def calc_upper_points(my)->int:
+        return sum(filter(bool, [y for x,y in enumerate(my.non_empty_slot_points()) if y > my.SIXES] ))
 
 
-# named indexes for the different slot types
-CHANCE=0
-ACES=1
-TWOS=2
-THREES=3
-FOURS=4
-FIVES=5
-SIXES=6
-THREE_OF_A_KIND=7
-FOUR_OF_A_KIND=8
-SMALL_STRAIGHT=9
-LARGE_STRAIGHT=10
-FULL_HOUSE=11
-YAHTZEE=12
-BONUS1=13
-BONUS2=14
-BONUS3=15
-SLOT_COUNT=16
 
-slot_points = [None]*16
-slot_score_fns = [
-    score_chance, 
-    score_aces, 
-    score_twos, 
-    score_threes, 
-    score_fours, 
-    score_fives, 
-    score_sixes, 
-    score_3ofakind, 
-    score_4ofakind, 
-    score_sm_str8, 
-    score_lg_str8, 
-    score_fullhouse, 
-    score_yahtzee,
-    score_bonus,
-    score_bonus,
-    score_bonus,
-]
-
-class Slot:
-    points:int 
-    score_fn:Callable[[list[int]],int] 
-
-class StateEV:
+class KeyState: # captures relevant state variables for a distinct expected value of unknowns
     avail_slot_indices:list[int] # 32768 possibilities per sum( [n_take_r(15,r,False,False) for r in fullrange(0,15)])
     rolls_remaining:int # 3 possibilities per len([0,1,2])
     dievals:list[int] # 362 possibilities per sum(n_take_r(6,r,False,True) for r in fullrange(0,5)]) 
     indices_to_roll:tuple[int] # 32 possibilities per sum(n_take_r(5,r,False,False) for r in fullrange(0,5)] 
     upper_bonus_deficit: int #<= 63 possibilities 
-    ev:float # 71_741_472_768 possibilities per 32768*3*362*32*63 and 2_241_921_024 worth saving per 32768*3*362*63 
+    ev_of_unknowns:float # 71_741_472_768 possibilities per 32768*3*362*32*63 and 2_241_921_024 worth saving per 32768*3*362*63 
 
 def generate_odds():
 
     # start with all completed scorecard states with 0 rolls left
+    for fn in ScoreCard.score_fns: 
+        pass # TODO
+
     # work backwards to all the 1 slot 1 roll remaining states
     # then 1 slot 2 roll remaining states
     # then 2 slot 1 roll
     # 2slot 2 roll
     # etc
-    pass
 
 # def choose_dice(slot_options:list[Slot], dievals, rolls_remaining=1) -> tuple(float,tuple[int,...]): 
 #     ''' returns indices of which dice to roll given scoring functions of available slots, current dievals, and rolls remaining '''
@@ -210,14 +222,16 @@ def generate_odds():
 def main(): 
     #ad hoc testing code here for now
 
-    dice = [randint(1,6) for _ in range(5)]
-    print(dice)
+    print('hi')
+    # dice = [randint(1,6) for _ in range(5)]
+    # print(dice)
 
-    for i in range(0,SLOT_COUNT):
-        available = True
-        if i > YAHTZEE and slot_points[i-1]==None: available = False #bonus slots not always available
-        slot_points[i], _ = ev(dice,slot_score_fns[i]) if available else None
-        print( slot_score_fns[i].__name__ + "\t" + str(round(slot_points[i],2)) )
+    # for i in range(0,SLOT_COUNT):
+    #     available = True
+    #     if i > YAHTZEE and slot_points[i-1]==None: available = False #bonus slots not always available
+    #     slot_points[i], _ = ev(dice,slot_score_fns[i]) if available else None
+    #     print( slot_score_fns[i].__name__ + "\t" + str(round(slot_points[i],2)) )
+    pass
 
 
 #########################################################

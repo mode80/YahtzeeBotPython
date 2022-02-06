@@ -77,3 +77,11 @@ def test_sim_ev():
     # assert ev_for_slot(ACES, tuple(sorted([1,1,1,1,1])))[0] == 5 
     # assert ev_for_slot(ACES, tuple(sorted([1,1,1,1,2])))[0] == 4 + 1/6 
 
+def test_best_dice_ev():
+    assert best_dice_ev((CHANCE,), rolls_remaining=1, sorted_dievals=(3,3,4,3,3) ) == ((0,1,3,4), 18.0)
+    assert best_dice_ev((CHANCE,), rolls_remaining=1, sorted_dievals=(4,4,4,4,4) ) == ((), 20.0)
+
+def test_best_slot_ev():
+    result = best_slot_ev((CHANCE,), sorted_dievals=(4,4,4,4,3)) == (13, 19.0)
+    result = best_slot_ev((CHANCE,FOURS), sorted_dievals=(4,4,4,4,3))[0] == 4 
+   

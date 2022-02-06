@@ -275,13 +275,13 @@ def main():
     #ad hoc testing code here for now
 
     avail_slots = (CHANCE,)
-    dice = (3,3,3,3,3)
+    dice = (4,4,4,4,3)
     #result = best_slot_ev(avail_slots, dice)
     print ()
     print (avail_slots)
     print (dice)
-    result = best_dice_ev(avail_slots, rolls_remaining=1, sorted_dievals=dice)
-    # result = best_slot_ev(avail_slots, sorted_dievals=dice)
+    # result = best_dice_ev(avail_slots, rolls_remaining=1, sorted_dievals=dice)
+    result = best_slot_ev(avail_slots, sorted_dievals=dice)
     print (result)
 
 

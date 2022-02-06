@@ -176,10 +176,10 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
     if (open_slots,sorted_dievals,upper_bonus_deficit,yahtzee_zeroed) in slot_ev_cache:
         return slot_ev_cache[open_slots,sorted_dievals,upper_bonus_deficit,yahtzee_zeroed]
 
-    total=0.0
     slot_sequences = permutations(open_slots, len(open_slots)) 
     evs = {}
     for slot_sequence in slot_sequences:
+        total=0.0
         head_slot = slot_sequence[0]
         zeroed_now = yahtzee_zeroed
         upper_deficit_now = upper_bonus_deficit 
@@ -192,7 +192,7 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
             if head_slot==LARGE_STRAIGHT: head_ev=40 
         if head_slot <=SIXES and head_ev>0 : upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
         if len(slot_sequence) == 1 and upper_deficit_now == 0: head_ev +=35 # check for upper bonus on final slot
-        total += head_ev 
+        total+=head_ev
 
         if len(slot_sequence) > 1 : # proceed to also score remaining slots
             if head_slot==YAHTZEE and head_ev==0: zeroed_now=True
@@ -274,14 +274,14 @@ def ev_for_state(open_slots:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = (THREES,CHANCE)
-    dice = (3,3,3,3,2)
+    avail_slots = (CHANCE,)
+    dice = (3,3,3,3,3)
     #result = best_slot_ev(avail_slots, dice)
     print ()
     print (avail_slots)
     print (dice)
-#    result = best_dice_ev(avail_slots, rolls_remaining=1, sorted_dievals=dice)
-    result = best_slot_ev(avail_slots, sorted_dievals=dice)
+    result = best_dice_ev(avail_slots, rolls_remaining=1, sorted_dievals=dice)
+    # result = best_slot_ev(avail_slots, sorted_dievals=dice)
     print (result)
 
 

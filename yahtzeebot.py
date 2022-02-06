@@ -113,7 +113,9 @@ FULL_HOUSE=11
 YAHTZEE=12
 CHANCE=13
 YAHTZEE_BONUSES=14
+
 ALL_DICE = (0,1,2,3,4)
+SIDES = 6
 
 point_slot_indecis = fullrange(UPPER_BONUS,YAHTZEE_BONUSES) # these correspond to available slots for storing points 
 fn_slot_indecis = fullrange(ACES,CHANCE) # corresponds to available slot scoring functions 
@@ -166,11 +168,14 @@ def calc_upper_points(slot_points:list[int])->int:
 '============================================================================================'
 
 
-SIDES = 6
-ev_cache = dict() #type:ignore
+slot_ev_cache = {} #type:ignore
 
-def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_zeroed:bool=False) -> tuple[Tuple[int,...],float]:
+def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True) -> tuple[int,float]:
     ''' returns the best slot and corresponding ev for final dice, given the slot possibilities and other relevant state '''
+
+    if (open_slots,sorted_dievals,upper_bonus_deficit,yahtzee_zeroed) in slot_ev_cache:
+        return slot_ev_cache[open_slots,sorted_dievals,upper_bonus_deficit,yahtzee_zeroed]
+
     total=0.0
     slot_sequences = permutations(open_slots, len(open_slots)) 
     evs = {}
@@ -179,29 +184,38 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
         zeroed_now = yahtzee_zeroed
         upper_deficit_now = upper_bonus_deficit 
 
-        ev = score_slot(head_slot,sorted_dievals)  # score slot itself w/o regard to game state adjustments
+        head_ev = score_slot(head_slot,sorted_dievals)  # score slot itself w/o regard to game state adjustments
         yahtzee_rolled = (sorted_dievals[0]==sorted_dievals[4]) # go on to adjust the raw ev for exogenous game state factors
         if yahtzee_rolled and not yahtzee_zeroed : 
-            ev+=100 # extra yahtzee bonus per rules
-            if head_slot==SMALL_STRAIGHT: ev=30 # extra yahtzees are valid straights per wildcard rules
-            if head_slot==LARGE_STRAIGHT: ev=40 
-        if head_slot <=SIXES and ev>0 : upper_deficit_now = max(upper_deficit_now - ev, 0) 
-        if len(slot_sequence) == 1 and upper_deficit_now == 0: ev +=35 # check for upper bonus on final slot
-        total += ev 
+            head_ev+=100 # extra yahtzee bonus per rules
+            if head_slot==SMALL_STRAIGHT: head_ev=30 # extra yahtzees are valid straights per wildcard rules
+            if head_slot==LARGE_STRAIGHT: head_ev=40 
+        if head_slot <=SIXES and head_ev>0 : upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
+        if len(slot_sequence) == 1 and upper_deficit_now == 0: head_ev +=35 # check for upper bonus on final slot
+        total += head_ev 
 
-        if len(slot_sequence) > 1 : # proceed to also ev remaining slots
-            if head_slot==YAHTZEE and ev==0: zeroed_now=True
+        if len(slot_sequence) > 1 : # proceed to also score remaining slots
+            if head_slot==YAHTZEE and head_ev==0: zeroed_now=True
             tail_slots = slot_sequence[1:]
-            total += ev_for_state(tail_slots, upper_deficit_now, zeroed_now) # <---------
-        evs[total] = slot_sequence #TODO we're clobbering any previous tie value slot_sequences here, but this is ok?
+            _, tail_ev = best_selection_ev(tail_slots, 3, upper_deficit_now, zeroed_now) # <---------
+            total += tail_ev
+        evs[total] = slot_sequence #we're clobbering any previous tie values here, but this is ok
 
     best_ev = max(evs.keys()) # slot is a choice -- use max ev
-    best_slot = evs[best_ev]
+    best_sequence = evs[best_ev]
+    best_slot = best_sequence[0]
+
+    slot_ev_cache[open_slots,sorted_dievals,upper_bonus_deficit,yahtzee_zeroed] = (best_slot, best_ev)
     return best_slot, best_ev
 
 
-def best_selection_ev(open_slots:tuple[int,...], rolls_remaining:int=0, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=False, sorted_dievals:tuple[int,...]=(0,0,0,0,0) ) -> tuple[tuple[int,...],float]: 
+selection_ev_cache = {} #type:ignore
+
+def best_selection_ev(open_slots:tuple[int,...], rolls_remaining:int=0, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True, sorted_dievals:tuple[int,...]=(0,0,0,0,0) ) -> tuple[tuple[int,...],float]: 
     ''' returns the best selection of dice and corresponding ev, given slot possibilities and any existing dice and other relevant state '''
+
+    if (open_slots, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, sorted_dievals) in selection_ev_cache: # try for cache hit first
+        return selection_ev_cache[open_slots, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, sorted_dievals]
  
     newvals=list(sorted_dievals) 
 
@@ -212,46 +226,35 @@ def best_selection_ev(open_slots:tuple[int,...], rolls_remaining:int=0, upper_bo
     for selection in die_combos: 
 
         "per roll outcome possibility" #outcomes are not a choice -- track average ev
-        rolled_outcomes_total = 0.0
-        rolled_outcome_possibilities = all_outcomes_for_rolling_n_dice(len(selection))
-        for rolled_outcome in rolled_outcome_possibilities: 
-            for rolled_index, dieval_index in enumerate(selection): newvals[dieval_index]=rolled_outcome[rolled_index]
+        total = 0.0
+        outcomes = all_outcomes_for_rolling_n_dice(len(selection))
+        for outcome in outcomes: 
+            for i, j in enumerate(selection): newvals[j]=outcome[i]
             sorted_newvals = tuple(sorted(newvals))
-            _, ev = best_slot_ev(open_slots, sorted_newvals, upper_bonus_deficit, yahtzee_zeroed) # <---------------
-            rolled_outcomes_total += ev
+            if rolls_remaining > 0: 
+                _, ev = best_selection_ev(open_slots, rolls_remaining-1, upper_bonus_deficit, yahtzee_zeroed, sorted_newvals)
+            else: 
+                _, ev = best_slot_ev(open_slots, sorted_newvals, upper_bonus_deficit, yahtzee_zeroed) # <---------------
+            total += ev
 
-        avg_outcome_ev_for_selection = rolled_outcomes_total/len(rolled_outcome_possibilities)
-        selection_evs[selection] = avg_outcome_ev_for_selection
+        avg_ev = total/len(outcomes)
+        selection_evs[avg_ev] = selection 
     
-    rolls_remaining -= 1
+    best_ev = max(selection_evs.keys()) 
+    best_selection = selection_evs[best_ev] 
 
-    best_ev = max(selection_evs.values()) 
-    best_selection = [k for k,v in selection_evs.items() if v==best_ev][0]
+    selection_ev_cache[open_slots, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, sorted_dievals] = (best_selection, best_ev) #cache it
 
-    if rolls_remaining == 0: 
-        return best_selection, best_ev
-    else:
-        _, best_ev = best_selection_ev(open_slots, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, sorted_newvals)
-        return best_selection, best_ev
+    return best_selection, best_ev
 
 def ev_for_state(open_slots:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True, rolls_remaining:int = 3, sorted_dievals:tuple[int,...]=(0,0,0,0,0,)) -> float: 
     ''' returns the additional expected value to come, given relevant game state.
         (sorted_open_slots can be in the range from 1 to 13; ACES thru CHANCE, excludes bonus slots)''' 
     
-    # try for cache hit first
-    if (open_slots, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, sorted_dievals) in ev_cache :      #type:ignore
-        return ev_cache[(open_slots, rolls_remaining, sorted_dievals, upper_bonus_deficit, yahtzee_zeroed, sorted_dievals)]  #type:ignore
-
     if rolls_remaining == 0 :
         _, ev = best_slot_ev(open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_zeroed) 
     else: 
         _, ev = best_selection_ev(open_slots, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, sorted_dievals) 
- 
-    # cache and return final result
-    ev_cache[(open_slots, sorted_dievals, upper_bonus_deficit, rolls_remaining, yahtzee_zeroed)] = ev #type:ignore
-    return ev
-
-
             
 
 
@@ -269,12 +272,13 @@ def main():
     #ad hoc testing code here for now
 
 
-    avail_slots = (CHANCE, THREES)
-    dice = (6,6,6,6,6)
-    best_slot, best_ev = best_slot_ev(avail_slots, dice)
+    avail_slots = (SIXES,)
+    dice = (3,3,3,3,3)
+    result = best_selection_ev(avail_slots,0)
+    # best_slot, best_ev = best_slot_ev(avail_slots, dice)
     print ()
     print (dice)
-    print (best_slot, best_ev)
+    print (result)
 
 #########################################################
 if __name__ == "__main__": main()

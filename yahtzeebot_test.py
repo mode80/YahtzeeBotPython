@@ -83,5 +83,5 @@ def test_best_dice_ev():
 
 def test_best_slot_ev():
     result = best_slot_ev((CHANCE,), sorted_dievals=(4,4,4,4,3)) == (13, 19.0)
-    result = best_slot_ev((CHANCE,FOURS), sorted_dievals=(4,4,4,4,3))[0] == 4 
+    result = best_slot_ev((CHANCE,FOURS,), sorted_dievals=(4,4,4,4,3))[0] == 4 
    

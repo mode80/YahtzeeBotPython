@@ -247,8 +247,9 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 
 
 # Possiblities to check/store
-#     8191 empty slot orderings ala sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
 #     252 dieval combo possibilities ala n_take_r(6,5,False,True) 
+#     16_003_008 ways to see those combos come up in 3 rolls per n_take_r(252,3,ordered=True,with_replacement=True)
+#     8191 empty slot orderings ala sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
 #     36 upper_bonus_deficitpossibilities ala len(fullrange(0,5))*6 
 #     2 yahtzee_zeroed possiblities 
 #   . so for just the 0-rolls-left slot placement choices it's 8191 * 252 * 36 * 2 = 148,617,504 possibilities... less than a minute @ 10e9 cycles per minute
@@ -256,7 +257,21 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 #       per sum([n_take_r(6,r,ordered=False,with_replacement=True) for r in fullrange(1,5)])
 #   . with 2-rolls to go there are another 461 lookups , plus another 461 for 3-rolls left
 
-
+#   final scorecard configurations: 
+#   . 6 ways to score Aces. Ditto for other upper slots. So 6**6 ways to score top = 46_656
+#   . (some will have a bonus, others not, but this doesn't add to the total configurations)
+#   . 4ofakind has 6 types of matching dice, each with a spare die of 6 different possibilities = 36 configurations here
+#   . 3ofakind is 6 trips plus 11 totals for remaining 2 dice = 66     ala len(Counter(list(x+y for x,y in product([1,2,3,4,5,6],repeat=2))))
+#   . full house is 6 pairs * 6 trips = 36... however it's either 25 or 0 .. so 2 possibilities
+#   . lgstraight 2 possibilities, 0 or 40       12345 and 23456
+#   . smstraight 2 possibilities, 0 or 30       1234 and 2345 and 3456, each with 6 possible spares = 3*6=18
+#   . yahtzee 2 possilities                     6 different matching dice
+#   . chance is only 26 totals per Counter(list(a+b+c+d+e for a,b,c,d,e in product([1,2,3,4,5,6],repeat=5))) is n_take_r(6,5,ordered=False,with_replacement=True) possibilities = 252
+#   6*6*6*6*6*6 * 36 * 66 * 2 * 2 * 2 * 2 * 26 = 461_155_368_964
+#   . a yahtzee bonus scenario is yet another way to score 12 of the above slots with +100 points, so x12 above = 553_386_442_752
+#   ===============
+#   553_386_442_752
+#   ================
 '============================================================================================'
 def main(): 
     #ad hoc testing code here for now

@@ -230,43 +230,48 @@ def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, 
 
 
 ev_cache={}
-def ev_for_state(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True) -> float: 
+def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True) -> float: 
     ''' returns the additional expected value to come, given relevant game state.
         (sorted_open_slots can contain ints in the range from 1 to 13; ACES thru CHANCE)''' 
 
-    if (open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) in ev_cache: # try for cache hit first
-        return ev_cache[open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed]
+    if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) in ev_cache: # try for cache hit first
+        return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed]
     
     if rolls_remaining == 0 :
-        _, ev = best_slot_ev(open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_zeroed) 
+        _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_zeroed) 
     else: 
-        _, ev = best_dice_ev(open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) 
+        _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) 
             
-    ev_cache[open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed] = ev
+    ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed] = ev
     return ev    
 
 
 # class KeyState: # captures relevant state variables for a distinct expected value of unknowns
-#     avail_slot_indices:list[int] # 32768 possibilities per sum( [n_take_r(15,r,False,False) for r in fullrange(0,15)])
-#     rolls_remaining:int # 3 possibilities per len([0,1,2])
-#     dievals:list[int] # 252 possibilities per n_take_r(6,5,False,True) 
-#     indices_to_roll:tuple[int] # 32 possibilities per sum(n_take_r(5,r,False,False) for r in fullrange(0,5)] 
-#     upper_bonus_deficit: int #<= 36 possibilities len(fullrange(0,5))*6 
-#     ev_of_unknowns:float # 40,995,127,296 possibilities per 32768*3*362*32*36 and 891,813,888 worth saving per 32768*3*252*36 
-
+#     open_slots:list[int] must check 6,227,020,800 ala fact(13)   (sequences < 13 will be cached results within this total)
+#                          must only keep 13 (the best ordering option for each of 13 different lengths) 
+#     rolls_remaining:int # 4 possibilities ala len([0,1,2,3])
+#     dievals:list[int] # 252 possibilities ala n_take_r(6,5,False,True) 
+#     indices_to_roll:tuple[int] # must check 32 possibilities ala sum([n_take_r(5,r,False,False) for r in fullrange(0,5)] 
+#                                 must only keep the 1 best selection
+#     upper_bonus_deficit: int #<= 36 possibilities ala len(fullrange(0,5))*6 
+#     yahtzee_zeroed:bool 2 possiblities 
+#     total state outcomes to check = 622702080*4*252*32*36*2 = 1,446,183,237,058,560 😳
+#       if a billion iterations took a minute, this would all take ~1000 days
+#     don't have to keep the non-winning EVs so stored floats would be 13*4*252*36 =  943,488  
 
 '============================================================================================'
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = (FOURS, FIVES,SIXES) # tuple(fullrange(ACES,CHANCE)) 
+    avail_slots = tuple(fullrange(ACES,CHANCE))  # (FOURS, FIVES,SIXES)
     dice = (1,2,3,1,1)
     #result = best_slot_ev(avail_slots, dice)
     print ()
     print (avail_slots)
     print (dice)
-    time = timeit(lambda: print( best_dice_ev(avail_slots, rolls_remaining=3, sorted_dievals=dice)), number=1)
+    # time = timeit(lambda: print( best_dice_ev(avail_slots, rolls_remaining=3, sorted_dievals=dice)), number=1)
     # result = best_slot_ev(avail_slots, sorted_dievals=dice)
+    time = timeit(lambda: [i*i for i in range(1_000_000)], number=1 )
     print (time)
 
 

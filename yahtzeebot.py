@@ -246,18 +246,16 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
     return ev    
 
 
-# class KeyState: # captures relevant state variables for a distinct expected value of unknowns
-#     open_slots:list[int] must check 6,227,020,800 ala fact(13)   (sequences < 13 will be cached results within this total)
-#                          must only keep 13 (the best ordering option for each of 13 different lengths) 
-#     rolls_remaining:int # 4 possibilities ala len([0,1,2,3])
-#     dievals:list[int] # 252 possibilities ala n_take_r(6,5,False,True) 
-#     indices_to_roll:tuple[int] # must check 32 possibilities ala sum([n_take_r(5,r,False,False) for r in fullrange(0,5)] 
-#                                 must only keep the 1 best selection
-#     upper_bonus_deficit: int #<= 36 possibilities ala len(fullrange(0,5))*6 
-#     yahtzee_zeroed:bool 2 possiblities 
-#     total state outcomes to check = 622702080*4*252*32*36*2 = 1,446,183,237,058,560 😳
-#       if a billion iterations took a minute, this would all take ~1000 days
-#     don't have to keep the non-winning EVs so stored floats would be 13*4*252*36 =  943,488  
+# Possiblities to check/store
+#     8191 empty slot orderings ala sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
+#     252 dieval combo possibilities ala n_take_r(6,5,False,True) 
+#     36 upper_bonus_deficitpossibilities ala len(fullrange(0,5))*6 
+#     2 yahtzee_zeroed possiblities 
+#   . so for just the 0-rolls-left slot placement choices it's 8191 * 252 * 36 * 2 = 148,617,504 possibilities... less than a minute @ 10e9 cycles per minute
+#   . with a final roll to go we just lookup into that table 461 times for each of the selection choice outcomes and store the max
+#       per sum([n_take_r(6,r,ordered=False,with_replacement=True) for r in fullrange(1,5)])
+#   . with 2-rolls to go there are another 461 lookups , plus another 461 for 3-rolls left
+
 
 '============================================================================================'
 def main(): 

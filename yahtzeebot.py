@@ -279,33 +279,54 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 #       13 * (252) + 72 = 3348
 #       (ignore for now the upper_bonus_deficits: 36 possibilities len(fullrange(0,5))*6)
 #  with 1-rolls left, final slot 
-#   . for each of 13 final slots we're looking at one of 252 dieval combos and 32 possible die selections, so 104_832 scenarios 
-#       32 =sum( [n_take_r(5,r,ordered=False,with_replacement=False) for r in fullrange(0,5)])
-#   . for each scenario, calc/cache an average of its possible outcome scores (averaging between 1 to 252 scores per scenario)  
-#       that's 104_832 EVs to calc/cache (purgable?)
-#   . this cache lets us lookup the EV for any dievals, single-slot, selection scenario, even the bad options
-#   . as we go, we calc/cache store the max EV among selections for each oneslot/dievals combo
+#   . for each of 13 possible final slots, we're looking at one of 252 dieval combos and 32 possible die selections, so 104_832 scenarios 
+#       104_832 = 13*252*32
+#       32 = sum( [n_take_r(5,r,ordered=False,with_replacement=False) for r in fullrange(0,5)])
+#   . for each scenario, calc/cache an average of its possible outcome scores (we're averaging between 1 & 252 scores per scenario)  
+#       that's 104_832 EVs to calc/cache (purgable)
+#   . this cache lets us lookup the EV for any dievals/oneslot/selection scenario, even the bad options
+#   . as we go, we calc/cache the max EV among selections for each oneslot/dievals combo
 #       13 * 252 = 3276 
-#   . so we've now calc/cached 3348 + 104_832 + 3276 = 111_456 things 
+#   . 104_832 of those were intermediary calcuations and can (should?) be excluded from the cache, leaving 6624 things 
 #   . those 6624 things lets us lookup the 1-roll-left EV for any dievals, final-slot scenario
 #  with 2 rolls left, final slot
 #   . for each of 13 possible final slots... 
 #   . and for each of the 252 dieval combos you might be going into the 2nd roll with...
-#   . and for all 32 possible selections...  
-#   . lookup the 1-roll EVs for all the possible outcomes (1 to 252 of them)  and calc/cache the average 
-#   . this is 13*252*32=104_832 new EVs to calc/cache (purgable?)
+#   . and for all 32 possible die selections...  
+#   . lookup the 1-roll EVs for all the possible selection outcomes (1 to 252 of them)  and calc/cache the average 
+#   . this is 13*252*32=104_832 new EVs to calc/cache (purgable)
 #   . as we go, we calc/cache store the max (best) EV among each of the 32 selections 
 #       104832/32 = 3276 of them 
 #  with 3 rolls left, final slot
 #   . ditto above, but looking up the 2-roll EVs
 #   . as we go, we calc/cache store the max (best) EV among each of the 32 selections 
 #       104832/32 = 3276 of them 
+#  altogether we've now calced 3348 + 3*(104_832 + 3276) = 327,672 things . but we only need to cache 13,176 of them 
 ##
 #  with 2 final slots   
-#   . we're able to lookup the EV for a dieval combo / singleslot.. but that doesn't help us where we can switch mid roll to a different slot so ...
-TODO...
-
-
+#   with 0-rolls left, n-final-slots
+#   . for each of 156 possible final slots sequences... 
+#       156=n_take_r(13,2,ordered=True,with_replacement=False) 
+#   . lookup the score for the current dievals against the first in the sequence then...
+#   . lookup the 3-roll-remaining EV for the remainder of the sequence (not each remaining slot in turn)
+#   . keep track of these slot sequence results and calc/cache the max
+#   . for two final slots we're calc/caching 156 things
+#   . we can't compose our result from cached 1-final-slot scenarios because optimal play can involve targeting multiple slots 
+#       (e.g. going for either a small or a large straight is very different than rolling for a straight or yahtzee) 
+#  
+#  with 13 final slots  
+#   . for the case of 13 final slots remaining (empty scorecard) there are 
+#   . ikes fucking 6_227_020_800 sequence possibilities
+#       6_227_020_800=n_take_r(13,13,ordered=True,with_replacement=False) 
+#   . the calcs for each of these amount to taking a max of several (1 to 252) lookups
+#   . we need these for each of 252 dieval combos 
+#   . and we separately need all that for every 12-slot sequence, 11-slot sequence, etc...
+#   . so we're looking at 16_926_797_486 * 252 = 4_265_552_966_472 calcs
+#      16_926_797_486 = sum([n_take_r(13,r,ordered=True,with_replacement=False) for r in fullrange(0,13)] )
+#      252=n_take_r(6,5,ordered=False,with_replacement=True) 
+#   . if each billion calcs takes a minute that's ~3 days on a single core processor
+#   . we only need to cache the EV for the -best- sequence per dieval combo, which should only be 13 * 252 = 3276
+   
 
 '============================================================================================'
 def main(): 

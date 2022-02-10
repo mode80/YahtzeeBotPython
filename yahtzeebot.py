@@ -5,6 +5,7 @@ from math import factorial as fact
 from typing import *
 from functools import *
 from timeit import timeit
+from tqdm import tqdm
 
 '============================================================================================'
 ' UTILITY FUNCTIONS '
@@ -228,14 +229,33 @@ def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, 
     best_selection = selection_evs[best_ev] 
     return best_selection, best_ev
 
+# Counts of cachable states 
+    # 252 dieval combo possibilities 
+    #     n_take_r(6,5,False,True) 
+    # 8191 sorted empty slot scenarios 
+    #    sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
+    # 36 upper_bonus_deficit possibilities 
+    #     len(fullrange(0,5))*6 
+    # 2 yahtzee_zeroed possiblities 
+    # 4 rolls_remaining possibilities
+    #     len([0,1,2,3])
+    # 252*8191*36*2*4==594_470_016  
 
+
+progress_bar=None #tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
 ev_cache={}
-def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True) -> float: 
-    ''' returns the additional expected value to come, given relevant game state.
-        (sorted_open_slots can contain ints in the range from 1 to 13; ACES thru CHANCE)''' 
+
+def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=False) -> float: 
+    ''' returns the additional expected value to come, given relevant game state.'''
 
     if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) in ev_cache: # try for cache hit first
         return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed]
+
+    global progress_bar
+    if progress_bar is None: 
+        lenslots=len(sorted_open_slots)
+        iterations = 252 * 36 * 2 * 4 * sum([n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)] )
+        progress_bar = tqdm(total=iterations) 
     
     if rolls_remaining == 0 :
         _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_zeroed) 
@@ -243,17 +263,13 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
         _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) 
             
     ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed] = ev
+
+    progress_bar.update(1) 
+
     return ev    
 
 
-# Counts of various states 
-#     252 dieval combo possibilities ala n_take_r(6,5,False,True) 
-#     irrelevant: 16_003_008 ways to see those combos come up in 3 rolls ala n_take_r(252,3,ordered=True,with_replacement=True)
-#     8191 empty slot scenarios ala sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
-#     36 upper_bonus_deficit possibilities ala len(fullrange(0,5))*6 
-#     2 yahtzee_zeroed possiblities 
-
-# Final scorecard configurations: 
+# Final scorecard configurations: (mostly irrelevant)
 #   . 6 ways to score Aces. Ditto for other upper slots. So 6**6 ways to score top = 46_656
 #     (some will have a bonus, others not, but this doesn't add to the total configurations)
 #   . 4ofakind has 6 types of matching dice, each with a spare die of 6 different possibilities = 36 configurations here
@@ -325,24 +341,17 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 #      16_926_797_486 = sum([n_take_r(13,r,ordered=True,with_replacement=False) for r in fullrange(0,13)] )
 #      252=n_take_r(6,5,ordered=False,with_replacement=True) 
 #   . if each billion calcs takes a minute that's ~3 days on a single core processor
-#   . we only need to cache the EV for the -best- sequence per dieval combo, which should only be 13 * 252 = 3276
+#   . we only need to cache the EV for the -best- sequence per dieval combo, which should only be 8191 * 252 = 2,064,132
+#     8191=sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
    
 
 '============================================================================================'
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = tuple(fullrange(ACES,CHANCE))  # (FOURS, FIVES,SIXES)
-    dice = (1,2,3,1,1)
-    #result = best_slot_ev(avail_slots, dice)
-    print ()
-    print (avail_slots)
-    print (dice)
-    # time = timeit(lambda: print( best_dice_ev(avail_slots, rolls_remaining=3, sorted_dievals=dice)), number=1)
-    # result = best_slot_ev(avail_slots, sorted_dievals=dice)
-    time = timeit(lambda: [i*i for i in range(1_000_000)], number=1 )
-    print (time)
-
+    avail_slots = tuple((ACES,CHANCE)) 
+    result = ev_for_state(avail_slots)
+    print(ev_cache)
 
 
 #########################################################

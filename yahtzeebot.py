@@ -264,11 +264,12 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
             
     ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed] = ev
 
+    progress_bar.write(fmtstr.format(str(_), ev, str(sorted_dievals), rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, str(sorted_open_slots))) 
     progress_bar.update(1) 
 
     return ev    
 
-
+fmtstr = "{:<15} | {:<6.2f} | {:<15} | {:<2} | {:<2} | {:<2} | {}"
 # Final scorecard configurations: (mostly irrelevant)
 #   . 6 ways to score Aces. Ditto for other upper slots. So 6**6 ways to score top = 46_656
 #     (some will have a bonus, others not, but this doesn't add to the total configurations)
@@ -351,8 +352,6 @@ def main():
 
     avail_slots = tuple((ACES,CHANCE)) 
     result = ev_for_state(avail_slots)
-    print(ev_cache)
-
 
 #########################################################
 if __name__ == "__main__": main()

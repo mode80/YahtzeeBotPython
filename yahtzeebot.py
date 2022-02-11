@@ -171,10 +171,10 @@ def calc_upper_points(slot_points:list[int])->int:
 '============================================================================================'
 
 
-def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[int,float]:
+def best_slot_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[int,float]:
     ''' returns the best slot and corresponding ev for final dice, given the slot possibilities and other relevant state '''
 
-    slot_sequences = permutations(open_slots, len(open_slots)) 
+    slot_sequences = permutations(sorted_open_slots, len(sorted_open_slots)) 
     evs = {}
     for slot_sequence in slot_sequences:
         total=0.0
@@ -194,7 +194,7 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
         if len(slot_sequence) > 1 : # proceed to also score remaining slots
             wild_now = yahtzee_is_wild
             if head_slot==YAHTZEE and yahtzee_rolled: wild_now=True
-            tail_slots = slot_sequence[1:]
+            tail_slots = tuple(sorted(slot_sequence[1:]))
             tail_ev = ev_for_state(tail_slots, None, 3, upper_deficit_now, wild_now) # <---------
             total += tail_ev
         evs[total] = slot_sequence #we're clobbering any previous tie values here, but this is ok
@@ -206,7 +206,7 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
     return best_slot, best_ev
 
 
-def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[tuple[int,...],float]: 
+def best_dice_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[tuple[int,...],float]: 
     ''' returns the best selection of dice and corresponding ev, given slot possibilities and any existing dice and other relevant state '''
 
     selection_evs = {}
@@ -222,7 +222,7 @@ def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, 
             newvals=list(sorted_dievals) 
             for i, j in enumerate(selection): newvals[j]=outcome[i]
             sorted_newvals = tuple(sorted(newvals))
-            ev = ev_for_state(open_slots, sorted_newvals, rolls_remaining-1, upper_bonus_deficit, yahtzee_is_wild)
+            ev = ev_for_state(sorted_open_slots, sorted_newvals, rolls_remaining-1, upper_bonus_deficit, yahtzee_is_wild)
             total += ev
         avg_ev = total/len(outcomes) #outcomes are not a choice -- track average ev
         selection_evs[avg_ev] = selection 
@@ -246,6 +246,7 @@ def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, 
 
 progress_bar=None #tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
 ev_cache={}
+done_slots=list()
 
 def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
@@ -253,14 +254,20 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
     if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) in ev_cache: # try for cache hit first
         return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild]
 
-    global progress_bar, log
+    global progress_bar, log, done_slots
     if progress_bar is None: 
         lenslots=len(sorted_open_slots)
-        iterations = 252 * 36 * 2 * 4 * sum([n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)] )
+        iterations = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) # open slot combos
+        # iterations *= n_take_r(6,5,ordered=False,with_replacement=True) # dieval combos 
+        # iterations *= 6 * sum(i for i in sorted_open_slots if i <= SIXES) # distinct upper_bonus_deficit values
+        # iterations *= 2 # yahtzee_is_wild statuses
         progress_bar = tqdm(total=iterations) 
     
     if rolls_remaining == 0 :
         _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_is_wild) 
+        if not sorted_open_slots in done_slots: 
+            progress_bar.update(1) 
+            done_slots.append(sorted_open_slots)
     else: 
         _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) 
             
@@ -269,7 +276,6 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
     log_line = f'{rolls_remaining:<2}\t{str(_):<15}\t{ev:6.2f}\t{str(sorted_dievals):<15}\t{upper_bonus_deficit:<2}\t{yahtzee_is_wild}\t{str(sorted_open_slots)}' 
     progress_bar.write(log_line)
     print(log_line,file=log)
-    progress_bar.update(1) 
 
     return ev    
 
@@ -358,11 +364,10 @@ def main():
     global log
     log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
     print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
-    result = ev_for_state(avail_slots)
+    result = ev_for_state(tuple(sorted(avail_slots)))
     log.close
 
-    with open('ev_cache.pkl','wb') as f:
-        pickle.dump(ev_cache,f)
+    with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
 
 #########################################################
 if __name__ == "__main__": main()

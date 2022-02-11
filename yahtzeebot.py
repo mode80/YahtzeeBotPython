@@ -219,11 +219,14 @@ def best_dice_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
         total = 0.0
         outcomes = all_outcomes_for_rolling_n_dice(len(selection))
         for outcome in outcomes: 
+            ###### HOT CODE PATH #######
             newvals=list(sorted_dievals) 
-            for i, j in enumerate(selection): newvals[j]=outcome[i]
+            for i, j in enumerate(selection): 
+                newvals[j]=outcome[i]
             sorted_newvals = tuple(sorted(newvals))
             ev = ev_for_state(sorted_open_slots, sorted_newvals, rolls_remaining-1, upper_bonus_deficit, yahtzee_is_wild)
             total += ev
+            ############################
         avg_ev = total/len(outcomes) #outcomes are not a choice -- track average ev
         selection_evs[avg_ev] = selection 
     

@@ -6,6 +6,8 @@ from typing import *
 from functools import *
 from timeit import timeit
 from tqdm import tqdm
+from datetime import datetime
+import pickle 
 
 '============================================================================================'
 ' UTILITY FUNCTIONS '
@@ -251,7 +253,7 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
     if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) in ev_cache: # try for cache hit first
         return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild]
 
-    global progress_bar
+    global progress_bar, log
     if progress_bar is None: 
         lenslots=len(sorted_open_slots)
         iterations = 252 * 36 * 2 * 4 * sum([n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)] )
@@ -264,8 +266,9 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
             
     ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild] = ev
 
-    # progress_bar.write(fmtstr.format(rolls_remaining, str(_), ev, str(sorted_dievals), upper_bonus_deficit, yahtzee_is_wild, str(sorted_open_slots))) 
-    progress_bar.write(f'{rolls_remaining:<2}   {str(_):<15}   {ev:6.2f}   {str(sorted_dievals):<15}   {upper_bonus_deficit:<2}   {yahtzee_is_wild}   {str(sorted_open_slots)}') 
+    log_line = f'{rolls_remaining:<2}\t{str(_):<15}\t{ev:6.2f}\t{str(sorted_dievals):<15}\t{upper_bonus_deficit:<2}\t{yahtzee_is_wild}\t{str(sorted_open_slots)}' 
+    progress_bar.write(log_line)
+    print(log_line,file=log)
     progress_bar.update(1) 
 
     return ev    
@@ -351,7 +354,15 @@ def main():
     #ad hoc testing code here for now
 
     avail_slots = tuple((ACES,CHANCE)) 
+
+    global log
+    log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
+    print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
     result = ev_for_state(avail_slots)
+    log.close
+
+    with open('ev_cache.pkl','wb') as f:
+        pickle.dump(ev_cache,f)
 
 #########################################################
 if __name__ == "__main__": main()

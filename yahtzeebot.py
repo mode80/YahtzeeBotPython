@@ -268,6 +268,7 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
         if not sorted_open_slots in done_slots: 
             progress_bar.update(1) 
             done_slots.append(sorted_open_slots)
+            with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
     else: 
         _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) 
             
@@ -359,15 +360,16 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = tuple((ACES,CHANCE)) 
+    avail_slots = tuple((fullrange(ACES,CHANCE))) 
 
     global log
     log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
     print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
+
     result = ev_for_state(tuple(sorted(avail_slots)))
+
     log.close
 
-    with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
 
 #########################################################
 if __name__ == "__main__": main()

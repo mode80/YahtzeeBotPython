@@ -169,7 +169,7 @@ def calc_upper_points(slot_points:list[int])->int:
 '============================================================================================'
 
 
-def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True) -> tuple[int,float]:
+def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[int,float]:
     ''' returns the best slot and corresponding ev for final dice, given the slot possibilities and other relevant state '''
 
     slot_sequences = permutations(open_slots, len(open_slots)) 
@@ -177,12 +177,11 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
     for slot_sequence in slot_sequences:
         total=0.0
         head_slot = slot_sequence[0]
-        zeroed_now = yahtzee_zeroed
         upper_deficit_now = upper_bonus_deficit 
 
         head_ev = score_slot(head_slot,sorted_dievals)  # score slot itself w/o regard to game state adjustments
         yahtzee_rolled = (sorted_dievals[0]==sorted_dievals[4]) # go on to adjust the raw ev for exogenous game state factors
-        if yahtzee_rolled and not yahtzee_zeroed : 
+        if yahtzee_rolled and yahtzee_is_wild : 
             head_ev+=100 # extra yahtzee bonus per rules
             if head_slot==SM_STRAIGHT: head_ev=30 # extra yahtzees are valid straights per wildcard rules
             if head_slot==LG_STRAIGHT: head_ev=40 
@@ -191,9 +190,10 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
         total+=head_ev
 
         if len(slot_sequence) > 1 : # proceed to also score remaining slots
-            if head_slot==YAHTZEE and head_ev==0: zeroed_now=True
+            wild_now = yahtzee_is_wild
+            if head_slot==YAHTZEE and yahtzee_rolled: wild_now=True
             tail_slots = slot_sequence[1:]
-            tail_ev = ev_for_state(tail_slots, None, 3, upper_deficit_now, zeroed_now) # <---------
+            tail_ev = ev_for_state(tail_slots, None, 3, upper_deficit_now, wild_now) # <---------
             total += tail_ev
         evs[total] = slot_sequence #we're clobbering any previous tie values here, but this is ok
 
@@ -204,7 +204,7 @@ def best_slot_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper
     return best_slot, best_ev
 
 
-def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=True) -> tuple[tuple[int,...],float]: 
+def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[tuple[int,...],float]: 
     ''' returns the best selection of dice and corresponding ev, given slot possibilities and any existing dice and other relevant state '''
 
     selection_evs = {}
@@ -220,7 +220,7 @@ def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, 
             newvals=list(sorted_dievals) 
             for i, j in enumerate(selection): newvals[j]=outcome[i]
             sorted_newvals = tuple(sorted(newvals))
-            ev = ev_for_state(open_slots, sorted_newvals, rolls_remaining-1, upper_bonus_deficit, yahtzee_zeroed)
+            ev = ev_for_state(open_slots, sorted_newvals, rolls_remaining-1, upper_bonus_deficit, yahtzee_is_wild)
             total += ev
         avg_ev = total/len(outcomes) #outcomes are not a choice -- track average ev
         selection_evs[avg_ev] = selection 
@@ -236,7 +236,7 @@ def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, 
     #    sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
     # 36 upper_bonus_deficit possibilities 
     #     len(fullrange(0,5))*6 
-    # 2 yahtzee_zeroed possiblities 
+    # 2 yahtzee_is_wild possiblities 
     # 4 rolls_remaining possibilities
     #     len([0,1,2,3])
     # 252*8191*36*2*4==594_470_016  
@@ -245,11 +245,11 @@ def best_dice_ev(open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, 
 progress_bar=None #tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
 ev_cache={}
 
-def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_zeroed:bool=False) -> float: 
+def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
 
-    if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) in ev_cache: # try for cache hit first
-        return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed]
+    if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) in ev_cache: # try for cache hit first
+        return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild]
 
     global progress_bar
     if progress_bar is None: 
@@ -258,18 +258,18 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
         progress_bar = tqdm(total=iterations) 
     
     if rolls_remaining == 0 :
-        _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_zeroed) 
+        _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_is_wild) 
     else: 
-        _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed) 
+        _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) 
             
-    ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_zeroed] = ev
+    ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild] = ev
 
-    progress_bar.write(fmtstr.format(str(_), ev, str(sorted_dievals), rolls_remaining, upper_bonus_deficit, yahtzee_zeroed, str(sorted_open_slots))) 
+    # progress_bar.write(fmtstr.format(rolls_remaining, str(_), ev, str(sorted_dievals), upper_bonus_deficit, yahtzee_is_wild, str(sorted_open_slots))) 
+    progress_bar.write(f'{rolls_remaining:<2}   {str(_):<15}   {ev:6.2f}   {str(sorted_dievals):<15}   {upper_bonus_deficit:<2}   {yahtzee_is_wild}   {str(sorted_open_slots)}') 
     progress_bar.update(1) 
 
     return ev    
 
-fmtstr = "{:<15} | {:<6.2f} | {:<15} | {:<2} | {:<2} | {:<2} | {}"
 # Final scorecard configurations: (mostly irrelevant)
 #   . 6 ways to score Aces. Ditto for other upper slots. So 6**6 ways to score top = 46_656
 #     (some will have a bonus, others not, but this doesn't add to the total configurations)

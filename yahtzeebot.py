@@ -46,10 +46,10 @@ def chance_of_at_least_x_hits(x:int, n:int=5, s:int=6)->float:
 
 
 @lru_cache(maxsize=None)
-def die_index_combos()->set[tuple[int,...]]:
+def die_index_combos()->set:
     ''' the set of all ways to roll different dice, as represented by a set of indice sets'''
     ''' {(), (0), (1), (2), (3), (4), (0,0), (0,1), (0,2), (0,3), (0,4), (1,1), (1,2) ... etc}'''
-    them:set[tuple[int,...]] = set(tuple()) 
+    them:set = set(tuple()) 
     them.add(tuple()) # this first one represents rolling no dice -- an empty tuple containing no indices
     for i in fullrange(0,4):
         them.add(tuple(set([i])))
@@ -65,16 +65,16 @@ def die_index_combos()->set[tuple[int,...]]:
 
 
 @lru_cache(maxsize=None)
-def all_outcomes_for_rolling_n_dice(size:int)->list[tuple[int,...]]: 
+def all_outcomes_for_rolling_n_dice(size:int)->list: 
     die_sides = [1,2,3,4,5,6] # values for all sides of a standard die
     return list(product(die_sides,repeat=size))  # all possible roll outcomes for different size die sets 
 
 @lru_cache(maxsize=None)
-def score_upperbox(boxnum:int, sorted_dievals:tuple[int,...])->int:
+def score_upperbox(boxnum:int, sorted_dievals:tuple)->int:
     return sum([x for x in sorted_dievals if x==boxnum])
 
 @lru_cache(maxsize=None)
-def score_n_of_a_kind(n:int,sorted_dievals:tuple[int,...])->int:
+def score_n_of_a_kind(n:int,sorted_dievals:tuple)->int:
     inarow=1; maxinarow=1; lastval=-1; sum=0; 
     for x in sorted_dievals:
         if x==lastval: inarow = inarow + 1
@@ -86,7 +86,7 @@ def score_n_of_a_kind(n:int,sorted_dievals:tuple[int,...])->int:
     else: return 0
 
 @lru_cache(maxsize=None)
-def straight_len(sorted_dievals:tuple[int,...])->int:
+def straight_len(sorted_dievals:tuple)->int:
     if sorted_dievals[0]==sorted_dievals[4]: return 5 # yahtzee counts as straight per rules 
     inarow=1; maxinarow=1; lastval=-999
     for x in sorted_dievals:
@@ -123,29 +123,29 @@ SIDES = 6
 # point_slot_indecis = fullrange(UPPER_BONUS,YAHTZEE_BONUSES) # these correspond to available slots for storing points 
 # fn_slot_indecis = fullrange(ACES,CHANCE) # corresponds to available slot scoring functions 
 
-def score_aces(sorted_dievals:tuple[int,...])->int:  return score_upperbox(1,sorted_dievals)
-def score_twos(sorted_dievals:tuple[int,...])->int:  return score_upperbox(2,sorted_dievals)
-def score_threes(sorted_dievals:tuple[int,...])->int:return score_upperbox(3,sorted_dievals)
-def score_fours(sorted_dievals:tuple[int,...])->int: return score_upperbox(4,sorted_dievals)
-def score_fives(sorted_dievals:tuple[int,...])->int: return score_upperbox(5,sorted_dievals)
-def score_sixes(sorted_dievals:tuple[int,...])->int: return score_upperbox(6,sorted_dievals)
+def score_aces(sorted_dievals:tuple)->int:  return score_upperbox(1,sorted_dievals)
+def score_twos(sorted_dievals:tuple)->int:  return score_upperbox(2,sorted_dievals)
+def score_threes(sorted_dievals:tuple)->int:return score_upperbox(3,sorted_dievals)
+def score_fours(sorted_dievals:tuple)->int: return score_upperbox(4,sorted_dievals)
+def score_fives(sorted_dievals:tuple)->int: return score_upperbox(5,sorted_dievals)
+def score_sixes(sorted_dievals:tuple)->int: return score_upperbox(6,sorted_dievals)
 
-def score_3ofakind(sorted_dievals:tuple[int,...])->int: return score_n_of_a_kind(3,sorted_dievals)
-def score_4ofakind(sorted_dievals:tuple[int,...])->int:  return score_n_of_a_kind(4,sorted_dievals)
-def score_sm_str8(sorted_dievals:tuple[int,...])->int: return 30 if straight_len(sorted_dievals) >= 4 else 0
-def score_lg_str8(sorted_dievals:tuple[int,...])->int: return 40 if straight_len(sorted_dievals) >= 5 else 0
+def score_3ofakind(sorted_dievals:tuple)->int: return score_n_of_a_kind(3,sorted_dievals)
+def score_4ofakind(sorted_dievals:tuple)->int:  return score_n_of_a_kind(4,sorted_dievals)
+def score_sm_str8(sorted_dievals:tuple)->int: return 30 if straight_len(sorted_dievals) >= 4 else 0
+def score_lg_str8(sorted_dievals:tuple)->int: return 40 if straight_len(sorted_dievals) >= 5 else 0
 
 @lru_cache(maxsize=None)
-def score_fullhouse(sorted_dievals:tuple[int,...])->int: 
+def score_fullhouse(sorted_dievals:tuple)->int: 
     # The official rule is that a Full House is "three of one number and two of another"
     counts = sorted(list(Counter(sorted_dievals).values() ))
     if len(counts)==2 and (counts[0]==2 and counts[1]==3) : return 25
     else: return 0
 
 @lru_cache(maxsize=None)
-def score_chance(sorted_dievals:tuple[int,...])->int: return sum(sorted_dievals) 
+def score_chance(sorted_dievals:tuple)->int: return sum(sorted_dievals) 
 
-def score_yahtzee(sorted_dievals:tuple[int,...])->int: return (50 if len(set(sorted_dievals))==1 else 0)
+def score_yahtzee(sorted_dievals:tuple)->int: return (50 if len(set(sorted_dievals))==1 else 0)
 
 score_fns = [
     None, # stub this out so indices align more intuitively with categories 
@@ -153,26 +153,26 @@ score_fns = [
     score_3ofakind, score_4ofakind, score_sm_str8, score_lg_str8, score_fullhouse, score_yahtzee, score_chance, 
 ]
 
-def score_slot(slot_index:int , sorted_dievals:tuple[int,...] )->int:
+def score_slot(slot_index:int , sorted_dievals:tuple )->int:
     '''reports the score for a set of dice in a given slot w/o regard for exogenous gamestate (bonuses, yahtzee wildcards etc)'''
     return score_fns[slot_index](sorted_dievals) #type:ignore
 
-def non_empty_slot_points(slot_points:list[int])->list[int]:
+def non_empty_slot_points(slot_points:list)->list:
     return filter(bool,slot_points) #type:ignore 
 
-def calc_total_points(slot_points:list[int])->int:
+def calc_total_points(slot_points:list)->int:
     return sum(filter(bool,non_empty_slot_points(slot_points) )) 
 
-def calc_lower_points(slot_points:list[int])->int:
+def calc_lower_points(slot_points:list)->int:
     return sum(filter(bool, [y for x,y in enumerate(non_empty_slot_points(slot_points)) if ACES <= y <= SIXES] ))
 
-def calc_upper_points(slot_points:list[int])->int:
+def calc_upper_points(slot_points:list)->int:
     return sum(filter(bool, [y for x,y in enumerate(non_empty_slot_points(slot_points)) if y > SIXES] ))
 
 '============================================================================================'
 
 
-def best_slot_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...], upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[int,float]:
+def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple:
     ''' returns the best slot and corresponding ev for final dice, given the slot possibilities and other relevant state '''
 
     slot_sequences = permutations(sorted_open_slots, len(sorted_open_slots)) 
@@ -208,7 +208,7 @@ def best_slot_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
     return best_slot, best_ev
 
 
-def best_dice_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple[tuple[int,...],float]: 
+def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple: 
     ''' returns the best selection of dice and corresponding ev, given slot possibilities and any existing dice and other relevant state '''
 
     selection_evs = {}
@@ -253,7 +253,7 @@ progress_bar=None #tqdm(total=594_470_016) # we'll increment each time we calcul
 ev_cache=dict()
 done_slots=list()
 
-def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
+def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
     global progress_bar, log, done_slots, ev_cache
 

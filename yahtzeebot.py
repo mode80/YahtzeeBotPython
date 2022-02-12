@@ -282,7 +282,7 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 
     log_line = f'{rolls_remaining:<2}\t{str(_):<15}\t{ev:6.2f}\t{str(sorted_dievals):<15}\t{upper_bonus_deficit:<2}\t{yahtzee_is_wild}\t{str(sorted_open_slots)}' 
     progress_bar.write(log_line)
-    # print(log_line,file=log)
+    print(log_line,file=log)
 
     return ev    
 
@@ -366,12 +366,12 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = (5,9,11,13,) 
+    avail_slots = tuple(sorted(fullrange(ACES,CHANCE)))
     dice = (1,1,1,1,1,)
 
-    # global log
-    # log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
-    # print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
+    global log
+    log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
+    print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
 
     # try to load cache from disk
     global ev_cache
@@ -379,11 +379,11 @@ def main():
     try:
         with open('ev_cache.pkl','rb') as f: ev_cache = pickle.load(f)
     except:
-        raise Exception() 
+        pass
 
-    result = ev_for_state(avail_slots,dice,0,63,False)
+    result = ev_for_state(avail_slots)
 
-    # log.close
+    log.close
 
 
 #########################################################

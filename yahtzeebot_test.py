@@ -34,7 +34,7 @@ def test_score_fullhouse():
     assert score_fullhouse((2,2,1,3,3,)) == 0 
     assert score_fullhouse((2,3,3,3,3,)) == 0 
     assert score_fullhouse((1,2,3,4,5,)) == 0 
-    assert score_fullhouse((3,3,3,3,3,)) == 25 
+    assert score_fullhouse((3,3,3,3,3,)) == 0 
 
 def test_score_sm_straight():
     assert score_sm_str8(tuple(sorted((1,3,2,4,6)))) == 30

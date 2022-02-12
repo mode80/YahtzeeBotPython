@@ -45,7 +45,7 @@ def chance_of_at_least_x_hits(x:int, n:int=5, s:int=6)->float:
     return running_sum
 
 
-@cache
+@lru_cache(maxsize=None)
 def die_index_combos()->set[tuple[int,...]]:
     ''' the set of all ways to roll different dice, as represented by a set of indice sets'''
     ''' {(), (0), (1), (2), (3), (4), (0,0), (0,1), (0,2), (0,3), (0,4), (1,1), (1,2) ... etc}'''
@@ -64,16 +64,16 @@ def die_index_combos()->set[tuple[int,...]]:
     return them
 
 
-@cache
+@lru_cache(maxsize=None)
 def all_outcomes_for_rolling_n_dice(size:int)->list[tuple[int,...]]: 
     die_sides = [1,2,3,4,5,6] # values for all sides of a standard die
     return list(product(die_sides,repeat=size))  # all possible roll outcomes for different size die sets 
 
-@cache
+@lru_cache(maxsize=None)
 def score_upperbox(boxnum:int, sorted_dievals:tuple[int,...])->int:
     return sum([x for x in sorted_dievals if x==boxnum])
 
-@cache
+@lru_cache(maxsize=None)
 def score_n_of_a_kind(n:int,sorted_dievals:tuple[int,...])->int:
     inarow=1; maxinarow=1; lastval=-1; sum=0; 
     for x in sorted_dievals:
@@ -85,7 +85,7 @@ def score_n_of_a_kind(n:int,sorted_dievals:tuple[int,...])->int:
     if maxinarow>=n: return sum 
     else: return 0
 
-@cache
+@lru_cache(maxsize=None)
 def straight_len(sorted_dievals:tuple[int,...])->int:
     if sorted_dievals[0]==sorted_dievals[4]: return 5 # yahtzee counts as straight per rules 
     inarow=1; maxinarow=1; lastval=-999
@@ -135,13 +135,13 @@ def score_4ofakind(sorted_dievals:tuple[int,...])->int:  return score_n_of_a_kin
 def score_sm_str8(sorted_dievals:tuple[int,...])->int: return 30 if straight_len(sorted_dievals) >= 4 else 0
 def score_lg_str8(sorted_dievals:tuple[int,...])->int: return 40 if straight_len(sorted_dievals) >= 5 else 0
 
-@cache
+@lru_cache(maxsize=None)
 def score_fullhouse(sorted_dievals:tuple[int,...])->int: 
     counts = sorted(list(Counter(sorted_dievals).values() ))
     if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
     else: return 0
 
-@cache
+@lru_cache(maxsize=None)
 def score_chance(sorted_dievals:tuple[int,...])->int: return sum(sorted_dievals) 
 
 def score_yahtzee(sorted_dievals:tuple[int,...])->int: return (50 if len(set(sorted_dievals))==1 else 0)
@@ -248,22 +248,23 @@ def best_dice_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 
 
 progress_bar=None #tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
-ev_cache={}
+ev_cache=dict()
 done_slots=list()
 
 def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
+    global progress_bar, log, done_slots, ev_cache
 
     if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) in ev_cache: # try for cache hit first
         return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild]
 
-    global progress_bar, log, done_slots
     if progress_bar is None: 
         lenslots=len(sorted_open_slots)
         iterations = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) # open slot combos
         # iterations *= n_take_r(6,5,ordered=False,with_replacement=True) # dieval combos 
         # iterations *= 6 * sum(i for i in sorted_open_slots if i <= SIXES) # distinct upper_bonus_deficit values
         # iterations *= 2 # yahtzee_is_wild statuses
+        # iterations -= len(ev_cache) #  subtract the count of any disk-loaded EVs TODO needs to deal with done_slots
         progress_bar = tqdm(total=iterations) 
     
     if rolls_remaining == 0 :
@@ -368,6 +369,13 @@ def main():
     # global log
     # log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
     # print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
+
+    # try to load cache from disk
+    global ev_cache
+    
+    try:
+        with open('ev_cache.pkl','rb') as f: ev_cache = pickle.load(f)
+    except: pass
 
     result = ev_for_state(tuple(sorted(avail_slots)))
 

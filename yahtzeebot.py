@@ -137,8 +137,9 @@ def score_lg_str8(sorted_dievals:tuple[int,...])->int: return 40 if straight_len
 
 @lru_cache(maxsize=None)
 def score_fullhouse(sorted_dievals:tuple[int,...])->int: 
+    # The official rule is that a Full House is "three of one number and two of another"
     counts = sorted(list(Counter(sorted_dievals).values() ))
-    if (counts[0]==2 and counts[1]==3) or counts[0]==5: return 25
+    if len(counts)==2 and (counts[0]==2 and counts[1]==3) : return 25
     else: return 0
 
 @lru_cache(maxsize=None)
@@ -185,8 +186,9 @@ def best_slot_ev(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
         yahtzee_rolled = (sorted_dievals[0]==sorted_dievals[4]) # go on to adjust the raw ev for exogenous game state factors
         if yahtzee_rolled and yahtzee_is_wild : 
             head_ev+=100 # extra yahtzee bonus per rules
-            if head_slot==SM_STRAIGHT: head_ev=30 # extra yahtzees are valid straights per wildcard rules
+            if head_slot==SM_STRAIGHT: head_ev=30 # extra yahtzees are valid in any lower slot per wildcard rules
             if head_slot==LG_STRAIGHT: head_ev=40 
+            if head_slot==FULL_HOUSE: head_ev=25 
         if head_slot <=SIXES and head_ev>0 : upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
         if len(slot_sequence) == 1 and upper_deficit_now == 0: head_ev +=35 # check for upper bonus on final slot
         total+=head_ev
@@ -364,7 +366,8 @@ def ev_for_state(sorted_open_slots:tuple[int,...], sorted_dievals:tuple[int,...]
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = tuple((fullrange(ACES,CHANCE))) 
+    avail_slots = (5,9,11,13,) 
+    dice = (1,1,1,1,1,)
 
     # global log
     # log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
@@ -375,9 +378,10 @@ def main():
     
     try:
         with open('ev_cache.pkl','rb') as f: ev_cache = pickle.load(f)
-    except: pass
+    except:
+        raise Exception() 
 
-    result = ev_for_state(tuple(sorted(avail_slots)))
+    result = ev_for_state(avail_slots,dice,0,63,False)
 
     # log.close
 

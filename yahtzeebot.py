@@ -44,6 +44,18 @@ def chance_of_at_least_x_hits(x:int, n:int=5, s:int=6)->float:
         running_sum += chance_of_exactly_x_hits(i,n,s)
     return running_sum
 
+def possible_top_scores():
+    sums = set()
+    for i in [0, 1, 2, 3, 4, 5]:
+        for ii in [0, 2, 4, 6, 8, 10]:
+            for iii in [0, 3, 6, 9, 12, 15]:
+                for iv in [0, 4, 8, 12, 16, 20]:
+                    for v in [0, 5, 10, 15, 20, 25]:
+                        for vi in [0, 6, 12, 18, 24, 30]:
+                            sums.add(sum((i,ii,iii,iv,v,vi)))
+    return sums
+
+
 
 @lru_cache(maxsize=None)
 def die_index_combos()->set:
@@ -241,17 +253,16 @@ def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     #     n_take_r(6,5,False,True) 
     # 8191 sorted empty slot scenarios 
     #    sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
-    # 36 upper_bonus_deficit possibilities 
-    #     len(fullrange(0,5))*6 
+    # 64 upper_bonus_deficit possibilities 
+    #     len([x for x in possible_top_scores() if x <=63])
     # 2 yahtzee_is_wild possiblities 
-    # 4 rolls_remaining possibilities
-    #     len([0,1,2,3])
-    # 252*8191*36*2*4==594_470_016  
+    # 2 rolls_remaining possibilities with selection choices
+    #     len([1,2])
+    # 252*8191*64*2*2==528_417_792  
 
 
-progress_bar=None #tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
+progress_bar=None#tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
 ev_cache=dict()
-done_slots=list()
 
 def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
@@ -264,17 +275,13 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
         lenslots=len(sorted_open_slots)
         iterations = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) # open slot combos
         # iterations *= n_take_r(6,5,ordered=False,with_replacement=True) # dieval combos 
-        # iterations *= 6 * sum(i for i in sorted_open_slots if i <= SIXES) # distinct upper_bonus_deficit values
-        # iterations *= 2 # yahtzee_is_wild statuses
-        # iterations -= len(ev_cache) #  subtract the count of any disk-loaded EVs TODO needs to deal with done_slots
+        iterations *= 64 # distinct upper_bonus_deficit values
+        iterations *= 2 # yahtzee_is_wild statuses
+        iterations -= len([r for _,_,r,_,_ in ev_cache.keys() if r == 3])  #  subtract the count of any progress ticks from disk-loaded EVs 
         progress_bar = tqdm(total=iterations) 
-    
+   
     if rolls_remaining == 0 :
         _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_is_wild) 
-        if not sorted_open_slots in done_slots: 
-            progress_bar.update(1) 
-            done_slots.append(sorted_open_slots)
-            with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
     else: 
         _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) 
             
@@ -284,6 +291,11 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     progress_bar.write(log_line)
     print(log_line,file=log)
 
+    if rolls_remaining==3:
+        progress_bar.update(1) 
+        if progress_bar.format_dict["elapsed"] % 3600 == 0: # save progress each hour
+            with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
+ 
     return ev    
 
 # Final scorecard configurations: (mostly irrelevant)
@@ -367,10 +379,9 @@ def main():
     #ad hoc testing code here for now
 
     avail_slots = tuple(sorted(fullrange(ACES,CHANCE)))
-    dice = (1,1,1,1,1,)
 
     global log
-    log = open('yahtzeebot.log','w') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
+    log = open('yahtzeebot.log','a') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
     print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
 
     # try to load cache from disk

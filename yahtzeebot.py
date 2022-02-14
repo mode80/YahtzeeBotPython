@@ -206,8 +206,7 @@ def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_defi
         total+=head_ev
 
         if len(slot_sequence) > 1 : # proceed to also score remaining slots
-            wild_now = yahtzee_is_wild
-            if head_slot==YAHTZEE and yahtzee_rolled: wild_now=True
+            wild_now=True if head_slot==YAHTZEE and yahtzee_rolled else yahtzee_is_wild
             tail_slots = tuple(sorted(slot_sequence[1:]))
             tail_ev = ev_for_state(tail_slots, None, 3, upper_deficit_now, wild_now) # <---------
             total += tail_ev
@@ -268,6 +267,10 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     ''' returns the additional expected value to come, given relevant game state.'''
     global progress_bar, log, done_slots, ev_cache
 
+    if upper_bonus_deficit > 0 and sorted_open_slots[0]>SIXES: # trim the statespace by ignoring upper total variations when no more upper slots are left
+        progress_bar.update(upper_bonus_deficit-1) # advance this many ticks
+        upper_bonus_deficit=0 
+
     if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) in ev_cache: # try for cache hit first
         return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild]
 
@@ -277,7 +280,7 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
         # iterations *= n_take_r(6,5,ordered=False,with_replacement=True) # dieval combos 
         iterations *= 64 # distinct upper_bonus_deficit values
         iterations *= 2 # yahtzee_is_wild statuses
-        iterations -= len([r for _,_,r,_,_ in ev_cache.keys() if r == 3])  #  subtract the count of any progress ticks from disk-loaded EVs 
+        iterations -= len([1 for _,_,r,_,_ in ev_cache.keys() if r == 3])  #  subtract the count of any progress ticks from disk-loaded EVs 
         progress_bar = tqdm(total=iterations) 
    
     if rolls_remaining == 0 :

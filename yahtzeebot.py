@@ -223,7 +223,8 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
         lenslots=len(sorted_open_slots)
         open_slot_combos = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) 
         done = set(s for s,_,r,_,_ in ev_cache.keys() if r==3)
-        progress_bar = tqdm(total=open_slot_combos) 
+        iterations=open_slot_combos-len(done)
+        progress_bar = tqdm(total=iterations) 
 
     if upper_bonus_deficit > 0 and sorted_open_slots[0]>SIXES: # trim the statespace by ignoring upper total variations when no more upper slots are left
         upper_bonus_deficit=63

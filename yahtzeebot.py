@@ -1,5 +1,5 @@
 from collections import Counter 
-from itertools import combinations, permutations, product
+from itertools import chain, permutations, product
 from random import randint
 from math import factorial as fact
 from typing import *
@@ -184,7 +184,7 @@ def calc_upper_points(slot_points:list)->int:
 '============================================================================================'
 
 
-def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple:
+def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> tuple:
     ''' returns the best slot and corresponding ev for final dice, given the slot possibilities and other relevant state '''
 
     slot_sequences = permutations(sorted_open_slots, len(sorted_open_slots)) 
@@ -259,46 +259,56 @@ def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     #     len([1,2])
     # 252*8191*64*2*2==528_417_792  
 
+    # 8191 sorted empty slot scenarios 
+    #    sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
+ 
 
 progress_bar=None#tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
 ev_cache=dict()
 
 def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
+
     global progress_bar, log, done_slots, ev_cache
 
+    if progress_bar is None: 
+        lenslots=len(sorted_open_slots)
+        open_slot_combos = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) # open slot combos including yahtzees
+        upper_count = sum(1 for x in sorted_open_slots if x <= SIXES)
+        slot_combos_having_upper = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,upper_count))
+        slot_combos_wo_upper = open_slot_combos-slot_combos_having_upper
+        cell_totals = tuple([x*y  for x in [0,1,2,3,4,5]]  for y in sorted_open_slots if y <=6  )
+        distinct_upper_totals = len(set(sum(s) for s in product(*cell_totals) if sum(s) <=63 ))
+        # extra_yahtzee_wild_variants = sum(n_take_r(lenslots-1,r,False,False) for r in fullrange(1,lenslots-1)) // 252
+        # iterations -= sum(1 for _,_,r,_,_ in ev_cache.keys() if r == 3)  #  subtract the count of any progress ticks from disk-loaded EVs 
+        # iterations *= n_take_r(6,5,ordered=False,with_replacement=True) # dieval combos 
+        iterations = slot_combos_wo_upper + slot_combos_having_upper*distinct_upper_totals 
+        progress_bar = tqdm(total=iterations) 
+
     if upper_bonus_deficit > 0 and sorted_open_slots[0]>SIXES: # trim the statespace by ignoring upper total variations when no more upper slots are left
-        progress_bar.update(upper_bonus_deficit-1) # advance this many ticks
-        upper_bonus_deficit=0 
+        upper_bonus_deficit=63
 
     if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) in ev_cache: # try for cache hit first
         return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild]
 
-    if progress_bar is None: 
-        lenslots=len(sorted_open_slots)
-        iterations = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) # open slot combos
-        # iterations *= n_take_r(6,5,ordered=False,with_replacement=True) # dieval combos 
-        iterations *= 64 # distinct upper_bonus_deficit values
-        iterations *= 2 # yahtzee_is_wild statuses
-        iterations -= len([1 for _,_,r,_,_ in ev_cache.keys() if r == 3])  #  subtract the count of any progress ticks from disk-loaded EVs 
-        progress_bar = tqdm(total=iterations) 
-   
+    if progress_bar.format_dict["elapsed"] % 3600 == 0: # save progress each hour
+        with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
+ 
     if rolls_remaining == 0 :
-        _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_is_wild) 
+        _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_is_wild)                   # <-----------------
     else: 
-        _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) 
+        _, ev = best_dice_ev(sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild)  # <-----------------
             
-    ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild] = ev
-
     log_line = f'{rolls_remaining:<2}\t{str(_):<15}\t{ev:6.2f}\t{str(sorted_dievals):<15}\t{upper_bonus_deficit:<2}\t{yahtzee_is_wild}\t{str(sorted_open_slots)}' 
     progress_bar.write(log_line)
     print(log_line,file=log)
 
-    if rolls_remaining==3:
+    if rolls_remaining==3: 
         progress_bar.update(1) 
-        if progress_bar.format_dict["elapsed"] % 3600 == 0: # save progress each hour
-            with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
- 
+
+    ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild] = ev
+
+
     return ev    
 
 # Final scorecard configurations: (mostly irrelevant)
@@ -381,7 +391,8 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = tuple(sorted(fullrange(ACES,CHANCE)))
+    # avail_slots = tuple(sorted(fullrange(YAHTZEE,CHANCE)))
+    avail_slots = (ACES,FIVES,CHANCE,)
 
     global log
     log = open('yahtzeebot.log','a') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')

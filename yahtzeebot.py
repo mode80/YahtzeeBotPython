@@ -265,6 +265,7 @@ def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
 
 progress_bar=None#tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
 ev_cache=dict()
+done_slots = set()
 
 def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
@@ -273,17 +274,8 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
 
     if progress_bar is None: 
         lenslots=len(sorted_open_slots)
-        open_slot_combos = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) # open slot combos including yahtzees
-        upper_count = sum(1 for x in sorted_open_slots if x <= SIXES)
-        slot_combos_having_upper = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,upper_count))
-        slot_combos_wo_upper = open_slot_combos-slot_combos_having_upper
-        cell_totals = tuple([x*y  for x in [0,1,2,3,4,5]]  for y in sorted_open_slots if y <=6  )
-        distinct_upper_totals = len(set(sum(s) for s in product(*cell_totals) if sum(s) <=63 ))
-        # extra_yahtzee_wild_variants = sum(n_take_r(lenslots-1,r,False,False) for r in fullrange(1,lenslots-1)) // 252
-        # iterations -= sum(1 for _,_,r,_,_ in ev_cache.keys() if r == 3)  #  subtract the count of any progress ticks from disk-loaded EVs 
-        # iterations *= n_take_r(6,5,ordered=False,with_replacement=True) # dieval combos 
-        iterations = slot_combos_wo_upper + slot_combos_having_upper*distinct_upper_totals 
-        progress_bar = tqdm(total=iterations) 
+        open_slot_combos = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) 
+        progress_bar = tqdm(total=open_slot_combos) 
 
     if upper_bonus_deficit > 0 and sorted_open_slots[0]>SIXES: # trim the statespace by ignoring upper total variations when no more upper slots are left
         upper_bonus_deficit=63
@@ -291,9 +283,6 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     if (sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild) in ev_cache: # try for cache hit first
         return ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild]
 
-    if progress_bar.format_dict["elapsed"] % 3600 == 0: # save progress each hour
-        with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
- 
     if rolls_remaining == 0 :
         _, ev = best_slot_ev(sorted_open_slots, sorted_dievals, upper_bonus_deficit, yahtzee_is_wild)                   # <-----------------
     else: 
@@ -303,89 +292,17 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     progress_bar.write(log_line)
     print(log_line,file=log)
 
-    if rolls_remaining==3: 
-        progress_bar.update(1) 
-
     ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild] = ev
 
-
+    if rolls_remaining==3: # periodically update progress and save
+        if sorted_open_slots not in done_slots:
+            done_slots.add(sorted_open_slots)
+            progress_bar.update(1) 
+            if len(done_slots) % 80 == 0 :
+                with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
+ 
     return ev    
 
-# Final scorecard configurations: (mostly irrelevant)
-#   . 6 ways to score Aces. Ditto for other upper slots. So 6**6 ways to score top = 46_656
-#     (some will have a bonus, others not, but this doesn't add to the total configurations)
-#   . 4ofakind has 6 types of matching dice, each with a spare die of 6 different possibilities = 36 configurations here
-#   . 3ofakind is 6 trips plus 11 possible totals for remaining 2 dice = 66     len(Counter(list(x+y for x,y in product([1,2,3,4,5,6],repeat=2))))==11
-#   . full house is 2 possibilities  -- either 25 or 0  -- even though full house is 6 pairs * 6 trips = 36
-#   . lgstraight 2 possibilities, 0 or 40       even though 12345 and 23456
-#   . smstraight 2 possibilities, 0 or 30       even though 1234 and 2345 and 3456, each with 6 possible spares = 3*6=18
-#   . yahtzee 2 possilities                     even though 6 different matching dice
-#   . chance is only 26 totals per Counter(list(a+b+c+d+e for a,b,c,d,e in product([1,2,3,4,5,6],repeat=5))) even though n_take_r(6,5,ordered=False,with_replacement=True) possibilities = 252
-#   6*6*6*6*6*6 * 36 * 66 * 2 * 2 * 2 * 2 * 26 = 461_155_368_964
-#   . a yahtzee bonus scenario is yet another way to score 12 of the above slots with +100 points, so x12 above == ... 
-#   ===============
-#   553_386_442_752
-#   ===============
-
-# Things to calculate and cache
-#  with 0-rolls left, final slot 
-#   . score every possible final slot against every dievals combo scenario 
-#       there are 3348 of these to calc/cache
-#       dieval combos: 252=n_take_r(6,5,ordered=False,with_replacement=True) 
-#       for the 6 yahtzee dieval scenarios there's an additional way to score 12 of the (non-yahtzee) slots
-#           6*12=72 
-#       13 * (252) + 72 = 3348
-#       (ignore for now the upper_bonus_deficits: 36 possibilities len(fullrange(0,5))*6)
-#  with 1-rolls left, final slot 
-#   . for each of 13 possible final slots, we're looking at one of 252 dieval combos and 32 possible die selections, so 104_832 scenarios 
-#       104_832 = 13*252*32
-#       32 = sum( [n_take_r(5,r,ordered=False,with_replacement=False) for r in fullrange(0,5)])
-#   . for each scenario, calc/cache an average of its possible outcome scores (we're averaging between 1 & 252 scores per scenario)  
-#       that's 104_832 EVs to calc/cache (purgable)
-#   . this cache lets us lookup the EV for any dievals/oneslot/selection scenario, even the bad options
-#   . as we go, we calc/cache the max EV among selections for each oneslot/dievals combo
-#       13 * 252 = 3276 
-#   . 104_832 of those were intermediary calcuations and can (should?) be excluded from the cache, leaving 6624 things 
-#   . those 6624 things lets us lookup the 1-roll-left EV for any dievals, final-slot scenario
-#  with 2 rolls left, final slot
-#   . for each of 13 possible final slots... 
-#   . and for each of the 252 dieval combos you might be going into the 2nd roll with...
-#   . and for all 32 possible die selections...  
-#   . lookup the 1-roll EVs for all the possible selection outcomes (1 to 252 of them)  and calc/cache the average 
-#   . this is 13*252*32=104_832 new EVs to calc/cache (purgable)
-#   . as we go, we calc/cache store the max (best) EV among each of the 32 selections 
-#       104832/32 = 3276 of them 
-#  with 3 rolls left, final slot
-#   . ditto above, but looking up the 2-roll EVs
-#   . as we go, we calc/cache store the max (best) EV among each of the 32 selections 
-#       104832/32 = 3276 of them 
-#  altogether we've now calced 3348 + 3*(104_832 + 3276) = 327,672 things . but we only need to cache 13,176 of them 
-##
-#  with 2 final slots   
-#   with 0-rolls left, n-final-slots
-#   . for each of 156 possible final slots sequences... 
-#       156=n_take_r(13,2,ordered=True,with_replacement=False) 
-#   . lookup the score for the current dievals against the first in the sequence then...
-#   . lookup the 3-roll-remaining EV for the remainder of the sequence (not each remaining slot in turn)
-#   . keep track of these slot sequence results and calc/cache the max
-#   . for two final slots we're calc/caching 156 things
-#   . we can't compose our result from cached 1-final-slot scenarios because optimal play can involve targeting multiple slots 
-#       (e.g. going for either a small or a large straight is very different than rolling for a straight or yahtzee) 
-#  
-#  with 13 final slots  
-#   . for the case of 13 final slots remaining (empty scorecard) there are 
-#   . ikes fucking 6_227_020_800 sequence possibilities
-#       6_227_020_800=n_take_r(13,13,ordered=True,with_replacement=False) 
-#   . the calcs for each of these amount to taking a max of several (1 to 252) lookups
-#   . we need these for each of 252 dieval combos 
-#   . and we separately need all that for every 12-slot sequence, 11-slot sequence, etc...
-#   . so we're looking at 16_926_797_486 * 252 = 4_265_552_966_472 calcs
-#      16_926_797_486 = sum([n_take_r(13,r,ordered=True,with_replacement=False) for r in fullrange(0,13)] )
-#      252=n_take_r(6,5,ordered=False,with_replacement=True) 
-#   . if each billion calcs takes a minute that's ~3 days on a single core processor
-#   . we only need to cache the EV for the -best- sequence per dieval combo, which should only be 8191 * 252 = 2,064,132
-#     8191=sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
-   
 
 '============================================================================================'
 def main(): 
@@ -407,6 +324,9 @@ def main():
         pass
 
     result = ev_for_state(avail_slots)
+
+    # with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
+
 
     log.close
 

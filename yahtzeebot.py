@@ -31,31 +31,7 @@ def n_take_r(n:int, r:int,ordered:bool=False,with_replacement:bool=False)->int:
         else:
             return fact(n)//fact(n-r)
 
-def chance_of_exactly_x_hits(x:int, n:int=5, s:int=6)->float:
-    '''chance of rolling EXACTLY x target values using n dice with s sides'''
-    p = 1/s
-    nCx = n_take_r(n,x) 
-    return nCx * p**x * (1-p)**(n-x) # this is the "binomial probability formula"
-
-def chance_of_at_least_x_hits(x:int, n:int=5, s:int=6)->float:
-    '''chance of rolling AT LEAST x target values using n dice with s sides'''
-    running_sum = 0.0
-    for i in fullrange(x,n):
-        running_sum += chance_of_exactly_x_hits(i,n,s)
-    return running_sum
-
-def possible_top_scores():
-    sums = set()
-    for i in [0, 1, 2, 3, 4, 5]:
-        for ii in [0, 2, 4, 6, 8, 10]:
-            for iii in [0, 3, 6, 9, 12, 15]:
-                for iv in [0, 4, 8, 12, 16, 20]:
-                    for v in [0, 5, 10, 15, 20, 25]:
-                        for vi in [0, 6, 12, 18, 24, 30]:
-                            sums.add(sum((i,ii,iii,iv,v,vi)))
-    return sums
-
-
+'============================================================================================'
 
 @lru_cache(maxsize=None)
 def die_index_combos()->set:
@@ -99,7 +75,6 @@ def score_n_of_a_kind(n:int,sorted_dievals:tuple)->int:
 
 @lru_cache(maxsize=None)
 def straight_len(sorted_dievals:tuple)->int:
-    if sorted_dievals[0]==sorted_dievals[4]: return 5 # yahtzee counts as straight per rules 
     inarow=1; maxinarow=1; lastval=-999
     for x in sorted_dievals:
         if x==lastval+1: inarow = inarow + 1
@@ -109,24 +84,10 @@ def straight_len(sorted_dievals:tuple)->int:
     return maxinarow 
 
 
-'============================================================================================'
 # named indexes for the different slot types
-
-UPPER_BONUS=0
-ACES=1
-TWOS=2
-THREES=3
-FOURS=4
-FIVES=5
-SIXES=6
-THREE_OF_A_KIND=7
-FOUR_OF_A_KIND=8
-SM_STRAIGHT=9
-LG_STRAIGHT=10
-FULL_HOUSE=11
-YAHTZEE=12
-CHANCE=13
-YAHTZEE_BONUSES=14
+ACES=1; TWOS=2; THREES=3; FOURS=4; FIVES=5; SIXES=6
+THREE_OF_A_KIND=7; FOUR_OF_A_KIND=8; 
+SM_STRAIGHT=9; LG_STRAIGHT=10; FULL_HOUSE=11; YAHTZEE=12; CHANCE=13
 
 ALL_DICE = (0,1,2,3,4)
 UNROLLED_DIEVALS = (0,0,0,0,0)
@@ -255,26 +216,24 @@ def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     # 64 upper_bonus_deficit possibilities 
     #     len([x for x in possible_top_scores() if x <=63])
     # 2 yahtzee_is_wild possiblities 
-    # 2 rolls_remaining possibilities with selection choices
+    # 2 rolls_remaining possibilities with die selection choices
     #     len([1,2])
-    # 252*8191*64*2*2==528_417_792  
 
-    # 8191 sorted empty slot scenarios 
-    #    sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
- 
+
 
 progress_bar=None#tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
 ev_cache=dict()
-done_slots = set()
+done = set()
 
 def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> float: 
     ''' returns the additional expected value to come, given relevant game state.'''
 
-    global progress_bar, log, done_slots, ev_cache
+    global progress_bar, log, done, ev_cache
 
     if progress_bar is None: 
         lenslots=len(sorted_open_slots)
         open_slot_combos = sum(n_take_r(lenslots,r,False,False) for r in fullrange(1,lenslots)) 
+        done = set(s for s,_,r,_,_ in ev_cache.keys() if r==3)
         progress_bar = tqdm(total=open_slot_combos) 
 
     if upper_bonus_deficit > 0 and sorted_open_slots[0]>SIXES: # trim the statespace by ignoring upper total variations when no more upper slots are left
@@ -295,10 +254,10 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild] = ev
 
     if rolls_remaining==3: # periodically update progress and save
-        if sorted_open_slots not in done_slots:
-            done_slots.add(sorted_open_slots)
+        if sorted_open_slots not in done:
+            done.add(sorted_open_slots)
             progress_bar.update(1) 
-            if len(done_slots) % 80 == 0 :
+            if len(done) % 80 == 0 :
                 with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
  
     return ev    
@@ -309,7 +268,7 @@ def main():
     #ad hoc testing code here for now
 
     # avail_slots = tuple(sorted(fullrange(YAHTZEE,CHANCE)))
-    avail_slots = (ACES,FIVES,CHANCE,)
+    avail_slots = tuple(sorted(fullrange(ACES,CHANCE)))
 
     global log
     log = open('yahtzeebot.log','a') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')

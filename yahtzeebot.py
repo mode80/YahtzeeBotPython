@@ -162,8 +162,9 @@ def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_defi
             if head_slot==SM_STRAIGHT: head_ev=30 # extra yahtzees are valid in any lower slot per wildcard rules
             if head_slot==LG_STRAIGHT: head_ev=40 
             if head_slot==FULL_HOUSE: head_ev=25 
-        if head_slot <=SIXES and head_ev>0 : upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
-        if len(slot_sequence) == 1 and upper_deficit_now == 0: head_ev +=35 # check for upper bonus on final slot
+        if head_slot <=SIXES and upper_deficit_now>0 and head_ev>0 : 
+            if head_ev >= upper_deficit_now: head_ev+=35 # add upper bonus when needed total is reached
+            upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
         total+=head_ev
 
         if len(slot_sequence) > 1 : # proceed to also score remaining slots
@@ -207,18 +208,6 @@ def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
     best_ev = max(selection_evs.keys()) #selection is a choice -- track max ev
     best_selection = selection_evs[best_ev] 
     return best_selection, best_ev
-
-# Counts of cachable states 
-    # 252 dieval combo possibilities 
-    #     n_take_r(6,5,False,True) 
-    # 8191 sorted empty slot scenarios 
-    #    sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
-    # 64 upper_bonus_deficit possibilities 
-    #     len([x for x in possible_top_scores() if x <=63])
-    # 2 yahtzee_is_wild possiblities 
-    # 2 rolls_remaining possibilities with die selection choices
-    #     len([1,2])
-
 
 
 progress_bar=None#tqdm(total=594_470_016) # we'll increment each time we calculate the best ev without a cache hit
@@ -286,10 +275,22 @@ def main():
 
     # with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
 
-
     log.close
 
 
 #########################################################
 if __name__ == "__main__": main()
 #########################################################
+
+# Counts of cachable states 
+    # 252 dieval combo possibilities 
+    #     n_take_r(6,5,False,True) 
+    # 8191 sorted empty slot scenarios 
+    #    sum([n_take_r(13,r,ordered=False,with_replacement=False) for r in fullrange(1,13)] )
+    # 64 upper_bonus_deficit possibilities 
+    #     len([x for x in possible_top_scores() if x <=63])
+    # 2 yahtzee_is_wild possiblities 
+    # 2 rolls_remaining possibilities with die selection choices
+    #     len([1,2])
+
+

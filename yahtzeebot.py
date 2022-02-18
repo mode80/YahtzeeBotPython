@@ -146,10 +146,10 @@ def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_defi
         head_ev = score_slot(head_slot,sorted_dievals)  # score slot itself w/o regard to game state adjustments
         yahtzee_rolled = (sorted_dievals[0]==sorted_dievals[4]) # go on to adjust the raw ev for exogenous game state factors
         if yahtzee_rolled and yahtzee_is_wild : 
-            head_ev+=100 # extra yahtzee bonus per rules
             if head_slot==SM_STRAIGHT: head_ev=30 # extra yahtzees are valid in any lower slot per wildcard rules
             if head_slot==LG_STRAIGHT: head_ev=40 
             if head_slot==FULL_HOUSE: head_ev=25 
+            head_ev+=100 # extra yahtzee bonus per rules
         if head_slot <=SIXES and upper_deficit_now>0 and head_ev>0 : 
             if head_ev >= upper_deficit_now: head_ev+=35 # add upper bonus when needed total is reached
             upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
@@ -244,7 +244,6 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
 def main(): 
     #ad hoc testing code here for now
 
-    # avail_slots = tuple(sorted(fullrange(YAHTZEE,CHANCE)))
     avail_slots = tuple(sorted(fullrange(ACES,CHANCE)))
 
     global log
@@ -253,16 +252,13 @@ def main():
 
     # try to load cache from disk
     global ev_cache
-    
     try:
         with open('ev_cache.pkl','rb') as f: ev_cache = pickle.load(f)
-    except:
-        pass
+    except: pass
 
     result = ev_for_state(avail_slots)
 
-    # with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
-
+    with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
     log.close
 
 

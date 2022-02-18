@@ -130,18 +130,6 @@ def score_slot(slot_index:int , sorted_dievals:tuple )->int:
     '''reports the score for a set of dice in a given slot w/o regard for exogenous gamestate (bonuses, yahtzee wildcards etc)'''
     return score_fns[slot_index](sorted_dievals) #type:ignore
 
-def non_empty_slot_points(slot_points:list)->list:
-    return filter(bool,slot_points) #type:ignore 
-
-def calc_total_points(slot_points:list)->int:
-    return sum(filter(bool,non_empty_slot_points(slot_points) )) 
-
-def calc_lower_points(slot_points:list)->int:
-    return sum(filter(bool, [y for x,y in enumerate(non_empty_slot_points(slot_points)) if ACES <= y <= SIXES] ))
-
-def calc_upper_points(slot_points:list)->int:
-    return sum(filter(bool, [y for x,y in enumerate(non_empty_slot_points(slot_points)) if y > SIXES] ))
-
 '============================================================================================'
 
 

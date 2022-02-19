@@ -169,7 +169,7 @@ def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_defi
     return best_slot, best_ev
 
 
-def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=True) -> tuple: 
+def best_dice_ev(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remaining:int=3, upper_bonus_deficit:int=63, yahtzee_is_wild:bool=False) -> tuple: 
     ''' returns the best selection of dice and corresponding ev, given slot possibilities and any existing dice and other relevant state '''
 
     selection_evs = {}

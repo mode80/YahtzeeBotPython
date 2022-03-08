@@ -42,14 +42,14 @@ def die_index_combos()->set:
     for i in fullrange(0,4):
         them.add(tuple(set([i])))
         for ii in fullrange(0,4):
-            them.add(tuple(set(sorted([i,ii])))) # list (sortable) -> set (for unique values) -> tuple (suitable as a dict key later)
+            them.add(tuple(set([i,ii]))) # list (sortable) -> set (for unique values) -> tuple (suitable as a dict key later)
             for iii in fullrange(0,4):
-                them.add(tuple(set(sorted([i,ii,iii]))))
+                them.add(tuple(set([i,ii,iii])))
                 for iv in fullrange(0,4):
-                    them.add(tuple(set(sorted([i,ii,iii,iv]))))
+                    them.add(tuple(set([i,ii,iii,iv])))
                     for v in fullrange(0,4):
-                        them.add(tuple(set(sorted([i,ii,iii,iv,v])))) 
-    return them
+                        them.add(tuple(set([i,ii,iii,iv,v]))) 
+    return sorted(them)
 
 
 @lru_cache(maxsize=None)
@@ -145,14 +145,14 @@ def best_slot_ev(sorted_open_slots:tuple, sorted_dievals:tuple, upper_bonus_defi
 
         head_ev = score_slot(head_slot,sorted_dievals)  # score slot itself w/o regard to game state adjustments
         yahtzee_rolled = (sorted_dievals[0]==sorted_dievals[4]) # go on to adjust the raw ev for exogenous game state factors
+        if head_slot <=SIXES and upper_deficit_now>0 and head_ev>0 : 
+            if head_ev >= upper_deficit_now: head_ev+=35 # add upper bonus when needed total is reached
+            upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
         if yahtzee_rolled and yahtzee_is_wild : 
             if head_slot==SM_STRAIGHT: head_ev=30 # extra yahtzees are valid in any lower slot per wildcard rules
             if head_slot==LG_STRAIGHT: head_ev=40 
             if head_slot==FULL_HOUSE: head_ev=25 
             head_ev+=100 # extra yahtzee bonus per rules
-        if head_slot <=SIXES and upper_deficit_now>0 and head_ev>0 : 
-            if head_ev >= upper_deficit_now: head_ev+=35 # add upper bonus when needed total is reached
-            upper_deficit_now = max(upper_deficit_now - head_ev, 0) 
         total+=head_ev
 
         if len(slot_sequence) > 1 : # proceed to also score remaining slots
@@ -226,7 +226,7 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
             
     log_line = f'{rolls_remaining:<2}\t{str(_):<15}\t{ev:6.2f}\t{str(sorted_dievals):<15}\t{upper_bonus_deficit:<2}\t{yahtzee_is_wild}\t{str(sorted_open_slots)}' 
     progress_bar.write(log_line)
-    print(log_line,file=log)
+    # print(log_line,file=log)
 
     ev_cache[sorted_open_slots, sorted_dievals, rolls_remaining, upper_bonus_deficit, yahtzee_is_wild] = ev
 
@@ -244,22 +244,22 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = tuple(sorted(fullrange(ACES,CHANCE)))
+    avail_slots = (ACES,SIXES,YAHTZEE,CHANCE,)
 
-    global log
-    log = open('yahtzeebot.log','a') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
-    print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
+    # global log
+    # log = open('yahtzeebot.log','a') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
+    # print(f'rolls_remaining\tresult\tev\tsorted_dievals\tupper_bonus_deficit\tyahtzee_is_wild\tsorted_open_slots)' , file=log)
 
     # try to load cache from disk
-    global ev_cache
-    try:
-        with open('ev_cache.pkl','rb') as f: ev_cache = pickle.load(f)
-    except: pass
+    # global ev_cache
+    # try:
+    #     with open('ev_cache.pkl','rb') as f: ev_cache = pickle.load(f)
+    # except: pass
 
     result = ev_for_state(avail_slots)
 
-    with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
-    log.close
+    # with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
+    # log.close
 
 
 #########################################################

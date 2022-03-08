@@ -53,9 +53,9 @@ def test_score_yahtzee():
     assert score_yahtzee(tuple(sorted([2,2,2,2,2]))) == 50 
     assert( score_yahtzee(tuple(sorted([2,2,6,2,2]))) ) == 0 
 
-def test_odds_of_x_hits_with_n_dice():
-    assert chance_of_exactly_x_hits(1,1) == 1/6
-    assert round( chance_of_exactly_x_hits(2,7,12), 5) ==  0.09439
+# def test_odds_of_x_hits_with_n_dice():
+    # assert chance_of_exactly_x_hits(1,1) == 1/6
+    # assert round( chance_of_exactly_x_hits(2,7,12), 5) ==  0.09439
 
 def test_straight_len():
     assert straight_len(tuple(sorted([1,2,0,5,3]))) == 4

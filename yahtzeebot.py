@@ -244,7 +244,6 @@ def ev_for_state(sorted_open_slots:tuple, sorted_dievals:tuple=None, rolls_remai
 def main(): 
     #ad hoc testing code here for now
 
-    avail_slots = (ACES,SIXES,YAHTZEE,CHANCE,)
 
     # global log
     # log = open('yahtzeebot.log','a') #open(f'{datetime.now():%Y-%m-%d-%H-%M}.log','w')
@@ -256,7 +255,8 @@ def main():
     #     with open('ev_cache.pkl','rb') as f: ev_cache = pickle.load(f)
     # except: pass
 
-    result = ev_for_state(avail_slots)
+    avail_slots = (SIXES,FOUR_OF_A_KIND,YAHTZEE)
+    result = ev_for_state(avail_slots,(6,6,6,6,6),0,30,False)
 
     # with open('ev_cache.pkl','wb') as f: pickle.dump(ev_cache,f)
     # log.close

@@ -87,7 +87,7 @@ def straight_len(sorted_dievals:tuple)->int:
 # named indexes for the different slot types
 ACES=1; TWOS=2; THREES=3; FOURS=4; FIVES=5; SIXES=6
 THREE_OF_A_KIND=7; FOUR_OF_A_KIND=8; 
-SM_STRAIGHT=9; LG_STRAIGHT=10; FULL_HOUSE=11; YAHTZEE=12; CHANCE=13
+FULL_HOUSE=9; SM_STRAIGHT=10; LG_STRAIGHT=11; YAHTZEE=12; CHANCE=13
 
 ALL_DICE = (0,1,2,3,4)
 UNROLLED_DIEVALS = (0,0,0,0,0)
@@ -123,7 +123,7 @@ def score_yahtzee(sorted_dievals:tuple)->int: return (50 if len(set(sorted_dieva
 score_fns = [
     None, # stub this out so indices align more intuitively with categories 
     score_aces, score_twos, score_threes, score_fours, score_fives, score_sixes, 
-    score_3ofakind, score_4ofakind, score_sm_str8, score_lg_str8, score_fullhouse, score_yahtzee, score_chance, 
+    score_3ofakind, score_4ofakind, score_fullhouse, score_sm_str8, score_lg_str8, score_yahtzee, score_chance, 
 ]
 
 def score_slot(slot_index:int , sorted_dievals:tuple )->int:

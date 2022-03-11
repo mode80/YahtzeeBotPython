@@ -78,7 +78,7 @@ def straight_len(sorted_dievals:tuple)->int:
     inarow=1; maxinarow=1; lastval=-999
     for x in sorted_dievals:
         if x==lastval+1: inarow = inarow + 1
-        else: inarow=1
+        elif x!=lastval: inarow=1
         maxinarow = max(inarow,maxinarow)
         lastval = x
     return maxinarow 

@@ -7,3 +7,8 @@
 *.pkl
 profile.json
 ev_cache.pkl
+/.empty
+/.ipynb_checkpoints
+/.mypy_cache
+/typings
+.DS_Store

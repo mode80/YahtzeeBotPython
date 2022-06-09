@@ -1,10 +1,12 @@
-from collections import Counter 
+from collections import Counter
+from distutils.command.build import build
+# from copyreg import pickle 
 from itertools import permutations, product, combinations, combinations_with_replacement, groupby
 from more_itertools import powerset, unique_justseen
 from functools import cache 
 from tqdm import tqdm
 from typing import Any
-import math 
+import math #; import xxhash; from pickle import dumps
 # import numpy as np
 
 DieVals = tuple[int,int,int,int,int]
@@ -250,7 +252,7 @@ class GameState:
         return (lookups, saves) 
 
     def __hash__(self):
-        return hash((self.sorted_dievals, self.sorted_open_slots,self.upper_total, self.rolls_remaining, self.yahtzee_bonus_avail,))
+        return hash((self.sorted_dievals, self.sorted_open_slots,self.upper_total, self.rolls_remaining, self.yahtzee_bonus_avail,))#return xxhash.xxh3_128_intdigest(dumps((self.sorted_dievals, self.sorted_open_slots,self.upper_total, self.rolls_remaining, self.yahtzee_bonus_avail,))) 
 
     def __eq__(self, other:Any):
         return (self.sorted_dievals, self.sorted_open_slots,self.upper_total, self.rolls_remaining, self.yahtzee_bonus_avail)  ==  (other.sorted_dievals, other.sorted_open_slots,other.upper_total, other.rolls_remaining, other.yahtzee_bonus_avail)  
@@ -291,12 +293,12 @@ class ChoiceEV:
         self.ev :float = ev
 
 def previously_used_upper_slots(slots:Slots) : 
-    return [x for x in slots if x <= 6] 
+    return [x for x in fullrange(1,6) if not x in slots] 
 
 def best_upper_total (slots:Slots) :
     sum=0
     for x in slots : 
-        if {x>6}: break 
+        if x>6: break 
         else: sum+=x
     return sum*5
 
@@ -313,7 +315,7 @@ UPPER_SCORES = [
 ]
 
 def relevant_upper_totals(slots:Slots)->list[int]:
-    totals:list[int] = []
+    totals:set[int] = set()
     # only upper slots could have contributed to the upper total 
     used_slot_idxs = previously_used_upper_slots(slots)
     used_score_idx_perms = product(fullrange(0,5), repeat=len(used_slot_idxs))
@@ -323,9 +325,9 @@ def relevant_upper_totals(slots:Slots)->list[int]:
         zipped = zip(used_slot_idxs, used_score_idxs)
         tot = sum( map( lambda t: UPPER_SCORES[t[0]][t[1]], zipped ) )
         # add the total to the set of unique totals 
-        totals.append(min(tot,63))
+        totals.add(min(tot,63))
 
-    totals.append(0) # 0 is always relevant and must be added here explicitly when there are no used upper slots 
+    totals.add(0) # 0 is always relevant and must be added here explicitly when there are no used upper slots 
 
     # filter out the totals that aren't relevant because they can't be reached by the upper slots remaining 
     # this filters out a lot of unneeded state space but means the lookup function must map extraneous deficits to a default 
@@ -348,7 +350,7 @@ class App:
 
         all_die_combos = outcomes_for_selection(0b11111)
         placeholder_outcome:Outcome = Outcome((0,0,0,0,0),(0b111,0b111,0b111,0b111,0b111),0)
-        leaf_cache = {}
+        # leaf_cache = {}
 
         # first handle special case of the most leafy leaf calcs -- where there's one slot left and no rolls remaining
         for single_slot in self.game.sorted_open_slots:   
@@ -366,7 +368,7 @@ class App:
                         )
                         score = state.score_first_slot_in_context()
                         choice_ev = ChoiceEV( choice= single_slot, ev= score)
-                        leaf_cache[state] = choice_ev
+                        self.ev_cache[state] = choice_ev
         
         # for each length 
         for slots_len in fullrange(1, len(self.game.sorted_open_slots)) : 
@@ -424,14 +426,14 @@ class App:
                                                 upper_total= upper_total_now, 
                                                 yahtzee_bonus_avail= yahtzee_bonus_avail_now
                                             )
-                                            cache = leaf_cache if slots_piece==head else self.ev_cache
-                                            choice_ev = cache[state] 
+                                            # cache = leaf_cache if slots_piece==head else self.ev_cache
+                                            choice_ev = self.ev_cache[state]
                                             if slots_piece==head : # on the first pass only.. 
                                                 #going into tail slots next, we may need to adjust the state based on the head choice
                                                 if choice_ev.choice <=SIXES : #adjust upper total for the next pass 
                                                     added = int(choice_ev.ev % 100) # the modulo 100 here removes any yathzee bonus from ev since that doesnt' count toward upper bonus total
                                                     upper_total_now = min(63, upper_total_now + added)
-                                                elif choice_ev.choice==YAHTZEE and choice_ev.ev>0.0: #scoreed _something_ other than 0 in yahtzee
+                                                elif choice_ev.choice==YAHTZEE and choice_ev.ev>0.0: #scored _something_ other than 0 in yahtzee
                                                     yahtzee_bonus_avail_now=True # adjust yahtzee related state for the next pass
                                                 rolls_remaining_now=3 #for upcoming tail lookup, we always want the ev for 3 rolls remaining
                                                 dievals_or_wildcard = placeholder_outcome.dievals # for the 3 rolls remaining, use "wildcard" representative dievals since dice don't matter when rolling all of them
@@ -464,13 +466,13 @@ class App:
                                         total_ev_for_selection = 0.0 
                                         outcomes_count = 0 
                                         for roll_outcome in outcomes_for_selection(selection) :
-                                            newvals:DieVals = tuple((
+                                            newvals:DieVals = (
                                                 (die_combo.dievals[0] & roll_outcome.mask[0]) | roll_outcome.dievals[0], 
                                                 (die_combo.dievals[1] & roll_outcome.mask[1]) | roll_outcome.dievals[1], 
                                                 (die_combo.dievals[2] & roll_outcome.mask[2]) | roll_outcome.dievals[2], 
                                                 (die_combo.dievals[3] & roll_outcome.mask[3]) | roll_outcome.dievals[3], 
                                                 (die_combo.dievals[4] & roll_outcome.mask[4]) | roll_outcome.dievals[4], 
-                                            ))
+                                            )
                                             newvals = SORTED_DIEVALS_FOR_UNSORTED[newvals]
                                             state = GameState(
                                                 sorted_dievals= newvals,
@@ -517,7 +519,10 @@ class App:
 def main(): 
     #ad hoc testing code here for now
 
-    game = GameState(sorted_open_slots=(SIXES,FOUR_OF_A_KIND,YAHTZEE))
+    game = GameState(   rolls_remaining= 0, 
+                        sorted_open_slots= (FOUR_OF_A_KIND, YAHTZEE), 
+                        upper_total= 63, 
+    )
     app = App(game)
     app.build_cache()
     result = app.ev_cache[game]

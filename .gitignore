@@ -12,3 +12,4 @@ ev_cache.pkl
 /.mypy_cache
 /typings
 .DS_Store
+output.csv

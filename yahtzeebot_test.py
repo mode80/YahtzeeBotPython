@@ -140,4 +140,17 @@ def test_new_bench() : # this runs in ~7.5s in multithreaded Rust
     app.build_cache()
     lhs = app.ev_cache[game]
     assert(round(lhs.ev,2) == 137.37)
- 
+
+def test_full_run() : # this runs in ~16m in multithreaded Rust
+    game = GameState(   rolls_remaining= 3,
+                        sorted_dievals= (0,0,0,0,0),
+                        sorted_open_slots= (1,2,3,4,5,)#6)#,7,8,9,10,11,12,13),
+    ) 
+    app = App(game)
+    app.build_cache()
+    lhs = app.ev_cache[game]
+    print(vars(lhs))
+    # assert(round(lhs.ev,2) == 254.59) 
+
+def test_relevant_upper_totals():
+    print(relevant_upper_totals((6,)))

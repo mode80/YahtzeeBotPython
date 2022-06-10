@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from collections import Counter
 from distutils.command.build import build
 # from copyreg import pickle 
@@ -122,11 +123,12 @@ def score_slot(slot_index:int , sorted_dievals:DieVals)->int:
 '============================================================================================'
 ' TRANSLATED FROM RUST '
 '============================================================================================'
+@dataclass
 class Outcome: 
-    def __init__(self, dievals:DieVals, mask:DieVals, arrangements:int): 
-        self.dievals = dievals 
-        self.mask = mask # stores a pre-made mask for blitting this outcome onto a GameState.DieVals.data u16 later
-        self.arrangements = arrangements # how many indistinguisable ways can these dievals be arranged (ie swapping identical dievals)
+    __slots__ = ['dievals','mask','arrangements']
+    dievals :DieVals 
+    mask :DieVals # stores a pre-made mask for blitting this outcome onto a GameState.DieVals.data u16 later
+    arrangements :int # how many indistinguisable ways can these dievals be arranged (ie swapping identical dievals)
 
 # INITIALIZERS
 
@@ -223,19 +225,21 @@ def outcomes_for_selection(selection:int) ->list[Outcome]:
 INDEXED_DIEVALS_SORTED=indexed_dievals_sorted() #//all possible sorted combos of 5 dievals (252 of them)
 
 
+@dataclass
 class GameState:
-    sorted_dievals:DieVals # (was) 3bits per die unsorted =15 bits minimally ... 8bits if combo is stored sorted (252 possibilities)
-    sorted_open_slots:Slots # " 4 bits for a single slot 
-    upper_total:int # (was) 6 bits " 
-    rolls_remaining:int  # (was) 3 bits "
-    yahtzee_bonus_avail:bool # (was) 1 bit "
+    __slots__ = ['sorted_dievals','sorted_open_slots','upper_total','rolls_remaining','yahtzee_bonus_avail']
+    sorted_dievals:DieVals #=(0,0,0,0,0)# (was) 3bits per die unsorted =15 bits minimally ... 8bits if combo is stored sorted (252 possibilities)
+    sorted_open_slots:Slots #=() # " 4 bits for a single slot 
+    upper_total:int #=0 # (was) 6 bits " 
+    rolls_remaining:int #=0  # (was) 3 bits "
+    yahtzee_bonus_avail:bool #= False# (was) 1 bit "
 
-    def __init__(self, sorted_dievals:DieVals=(0,0,0,0,0,), sorted_open_slots:Slots=tuple(), upper_total:int=0, rolls_remaining:int=0, yahtzee_bonus_avail:bool = False):
-        self.sorted_dievals = sorted_dievals 
-        self.sorted_open_slots = sorted_open_slots 
-        self.upper_total=upper_total 
-        self.rolls_remaining=rolls_remaining 
-        self.yahtzee_bonus_avail=yahtzee_bonus_avail 
+    def __init__(self,sorted_dievals:DieVals=(0,0,0,0,0), sorted_open_slots:Slots=(), upper_total:int=0, rolls_remaining:int=0, yahtzee_bonus_avail:bool=False):
+        self.sorted_dievals = sorted_dievals # (was) 3bits per die unsorted =15 bits minimally ... 8bits if combo is stored sorted (252 possibilities)
+        self.sorted_open_slots = sorted_open_slots # " 4 bits for a single slot 
+        self.upper_total = upper_total # (was) 6 bits " 
+        self.rolls_remaining = rolls_remaining  # (was) 3 bits "
+        self.yahtzee_bonus_avail = yahtzee_bonus_avail #= False# (was) 1 bit "
 
     def counts(self) :
         lookups=0; saves=0
@@ -287,10 +291,15 @@ class GameState:
     
         return score
 
+@dataclass
 class ChoiceEV:
-    def __init__(self, choice:int=0, ev:float=0.0):
-        self.choice :int =choice 
-        self.ev :float = ev
+    __slots__ = ['choice','ev']
+    choice :int 
+    ev :float 
+
+def __init__(self,choice:int = 0 , ev:float = 0.0):
+    self.choice = choice
+    self.float = float
 
 def previously_used_upper_slots(slots:Slots) : 
     return [x for x in fullrange(1,6) if not x in slots] 
@@ -335,7 +344,12 @@ def relevant_upper_totals(slots:Slots)->list[int]:
     return [x for x in totals if x==0 or x + best_current_slot_total >=63]
 
 
+@dataclass
 class App:
+    __slots__ = ['bar','ev_cache','game']
+    bar:Any
+    ev_cache:dict[GameState,ChoiceEV] 
+    game:GameState
 
     ''' return a newly initialized app'''
     def __init__(self, game:GameState) :
@@ -398,7 +412,7 @@ class App:
 
                                     #HANDLE SLOT SELECTION
 
-                                    slot_choice_ev = ChoiceEV()
+                                    slot_choice_ev = ChoiceEV(0,0.0)
 
                                     for first_slot in slots :
 
@@ -458,7 +472,7 @@ class App:
                                     # HANDLE DICE SELECTION 
 
                                     next_roll = rolls_remaining-1 
-                                    best_dice_choice_ev = ChoiceEV()
+                                    best_dice_choice_ev = ChoiceEV(0,0.0)
                                     # selections are bitfields where '1' means roll and '0' means don't roll # always select all dice on the initial roll, otherwise try all selections 
                                     selections = fullrange(0b11111,0b11111) if rolls_remaining ==3 else fullrange(0b00000,0b11111) 
 

@@ -533,7 +533,7 @@ class App:
 def main(): 
     #ad hoc testing code here for now
 
-    game = GameState(   rolls_remaining= 0, 
+    game = GameState(   rolls_remaining= 3, 
                         sorted_open_slots= (FOUR_OF_A_KIND, YAHTZEE), 
                         upper_total= 63, 
     )

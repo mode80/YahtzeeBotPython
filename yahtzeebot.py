@@ -297,9 +297,9 @@ class ChoiceEV:
     choice :int 
     ev :float 
 
-def __init__(self,choice:int = 0 , ev:float = 0.0):
-    self.choice = choice
-    self.float = float
+    def __init__(self,choice:int = 0 , ev:float = 0.0):
+        self.choice = choice
+        self.ev= ev 
 
 def previously_used_upper_slots(slots:Slots) : 
     return [x for x in fullrange(1,6) if not x in slots] 

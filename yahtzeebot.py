@@ -533,9 +533,9 @@ def main():
     #ad hoc testing code here for now
 
     game = GameState(   
-        sorted_dievals= (3,4,4,6,6) ,
-        rolls_remaining= 2, 
-        sorted_open_slots= (4,5,6) ,
+        sorted_dievals= (0,0,0,0,0) ,
+        rolls_remaining= 3, 
+        sorted_open_slots= (1,2,3,4,5,6,7,8,9,10,11,12,13),
         upper_total= 0, 
         yahtzee_bonus_avail= False, 
     )

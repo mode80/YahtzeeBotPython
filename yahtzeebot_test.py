@@ -153,4 +153,4 @@ def test_full_run() : # this runs in ~16m in multithreaded Rust
     # assert(round(lhs.ev,2) == 254.59) 
 
 def test_relevant_upper_totals():
-    print(relevant_upper_totals((6,)))
+    print(relevant_upper_totals((1,4)))

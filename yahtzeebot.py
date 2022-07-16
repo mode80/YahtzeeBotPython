@@ -273,9 +273,9 @@ class GameState:
         score = score_slot(slot, self.sorted_dievals)
     
         # /* add upper bonus when needed total is reached */
-        if slot<=SIXES and self.upper_total>0 : 
-            new_deficit = max(self.upper_total - score , 0)
-            if new_deficit==0: score += 35 
+        if slot<=SIXES and self.upper_total<63 : 
+            new_total = min(self.upper_total + score , 63)
+            if new_total==63: score += 35 
     
         # /* special handling of "joker rules" */
         just_rolled_yahtzee = score_yahtzee(self.sorted_dievals)==50
@@ -432,12 +432,11 @@ class App:
                                         # do this by summing the ev for the first (head) slot with the ev value that we look up for the remaining (tail) slots
                                         rolls_remaining_now:int = 0
                                         for slots_piece in unique_justseen([head,tail]): #tricky: loops only once when tail==head per condition above. (converting to a set to get uniqe values isn't suitable because order is important and sets are unordered)
-                                            upper_total_now = upper_total_now if upper_total_now + best_upper_total(slots_piece) >= 63 else 0 #only relevant totals are cached
                                             state = GameState(
                                                 rolls_remaining=rolls_remaining_now, 
                                                 sorted_dievals=dievals_or_wildcard,
                                                 sorted_open_slots= slots_piece, 
-                                                upper_total= upper_total_now, 
+                                                upper_total= upper_total_now if upper_total_now+best_upper_total(slots_piece)>=63 else 0, #only relevant totals are cached 
                                                 yahtzee_bonus_avail= yahtzee_bonus_avail_now
                                             )
                                             # cache = leaf_cache if slots_piece==head else self.ev_cache
@@ -533,9 +532,12 @@ class App:
 def main(): 
     #ad hoc testing code here for now
 
-    game = GameState(   rolls_remaining= 3, 
-                        sorted_open_slots= (FOUR_OF_A_KIND, YAHTZEE), 
-                        upper_total= 63, 
+    game = GameState(   
+        sorted_dievals= (3,4,4,6,6) ,
+        rolls_remaining= 2, 
+        sorted_open_slots= (4,5,6) ,
+        upper_total= 0, 
+        yahtzee_bonus_avail= False, 
     )
     app = App(game)
     app.build_cache()
